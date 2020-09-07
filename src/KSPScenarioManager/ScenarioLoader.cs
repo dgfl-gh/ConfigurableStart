@@ -6,8 +6,6 @@ using UnityEngine;
 namespace CustomScenarioManager
 {
     // FEATURES & REQUIREMENTS
-    // Set Launch Pads (KCT/RP0KCT)
-    // VAB/SPH Build Points (KCT/RP0KCT)
     // Contract Completion / Removal (Contract Configurator)
     // Engine Unlocks (RealFuels)
 

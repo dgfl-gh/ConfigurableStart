@@ -11,6 +11,8 @@ namespace CustomScenarioManager
         public static string unlockedTechs;
         //public static string completedContracts;
         public static string facilityUpgrades;
+        public static string kctLaunchpads;
+        public static bool kctRemoveDefaultPads;
         public static string startingFunds;
         public static string startingScience;
         public static string startingRep;
@@ -38,6 +40,18 @@ namespace CustomScenarioManager
                 GUILayout.Label("Facility Levels: ", HighLogic.Skin.label, GUILayout.Width(150));
                 facilityUpgrades = GUILayout.TextField(facilityUpgrades, HighLogic.Skin.textField);
                 GUILayout.EndHorizontal();
+
+                if(KCT.Found)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("KCT Launchpads: ", HighLogic.Skin.label, GUILayout.Width(150));
+                    kctLaunchpads = GUILayout.TextField(kctLaunchpads, HighLogic.Skin.textField);
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad: " , HighLogic.Skin.toggle);
+                    GUILayout.EndHorizontal();
+                }
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Starting Funds: ", HighLogic.Skin.label, GUILayout.Width(150));
@@ -80,20 +94,12 @@ namespace CustomScenarioManager
             startingDate = scn.StartingDate;
             unlockedTechs = scn.UnlockedTechs;
             //completedContracts = scn.CompletedContracts;
+            kctLaunchpads = scn.KCTLaunchpads;
+            kctRemoveDefaultPads = scn.KCTRemoveDefaltPads;
             facilityUpgrades = scn.FacilityUpgrades;
             startingFunds = scn.StartingFunds.ToString();
             startingScience = scn.StartingScience.ToString();
             startingRep = scn.StartingRep.ToString();
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-    public class CustomInputBoxUI : GameParameters.CustomParameterUI
-    {
-            public CustomInputBoxUI(string title)
-        : base(title)
-        {
-            base.title = Localizer.Format(title);
         }
     }
 }

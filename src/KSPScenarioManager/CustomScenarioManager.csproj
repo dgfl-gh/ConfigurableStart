@@ -54,6 +54,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DateHandler.cs" />
+    <Compile Include="ModIntegration\KCT.cs" />
+    <Compile Include="ModIntegration\RP0.cs" />
     <Compile Include="Scenario.cs" />
     <Compile Include="ScenarioLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

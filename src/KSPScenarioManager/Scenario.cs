@@ -16,6 +16,8 @@ namespace CustomScenarioManager
         private string unlockedTechs = null;
         private string completedContracts = null;
         private string facilityUpgrades = null;
+        private string kctLaunchpads = null;
+        private bool kctRemoveDefaultPads;
         private float startingFunds;
         private float startingScience;
         private float startingRep;
@@ -26,6 +28,8 @@ namespace CustomScenarioManager
         public string UnlockedTechs { get => unlockedTechs; set => unlockedTechs = value; }
         public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
         public string FacilityUpgrades { get => facilityUpgrades; set => facilityUpgrades = value; }
+        public string KCTLaunchpads { get => kctLaunchpads; set => kctLaunchpads = value; }
+        public bool KCTRemoveDefaltPads { get => kctRemoveDefaultPads; set => kctRemoveDefaultPads = value; }
         public float StartingFunds { get => startingFunds; set => startingFunds = value; }
         public float StartingScience { get => startingScience; set => startingScience = value; }
         public float StartingRep { get => startingRep; set => startingRep = value; }
@@ -43,6 +47,10 @@ namespace CustomScenarioManager
             node.TryGetValue("unlockedTechs", ref x.unlockedTechs);
             node.TryGetValue("completedContracts", ref x.completedContracts);
             node.TryGetValue("facilities", ref x.facilityUpgrades);
+            node.TryGetValue("kctLaunchpads", ref x.kctLaunchpads);
+
+            if (!node.TryGetValue("kctRemoveDefaultPads", ref x.kctRemoveDefaultPads))
+                x.kctRemoveDefaultPads = !string.IsNullOrEmpty(x.kctLaunchpads);
 
             if (!node.TryGetValue("startingRep", ref x.startingRep))
                 x.startingRep = HighLogic.CurrentGame.Parameters.Career.StartingReputation;
@@ -67,6 +75,8 @@ namespace CustomScenarioManager
             unlockedTechs = ScenarioManagerSettings.unlockedTechs;
             //completedContracts = ScenarioManagerSettings.completedContracts;
             facilityUpgrades = ScenarioManagerSettings.facilityUpgrades;
+            kctLaunchpads = ScenarioManagerSettings.kctLaunchpads;
+            kctRemoveDefaultPads = ScenarioManagerSettings.kctRemoveDefaultPads;
             float.TryParse(ScenarioManagerSettings.startingFunds, out startingFunds);
             float.TryParse(ScenarioManagerSettings.startingScience, out startingScience);
             float.TryParse(ScenarioManagerSettings.startingRep, out startingRep);
@@ -118,17 +128,17 @@ namespace CustomScenarioManager
             if (!string.IsNullOrEmpty(facilityUpgrades))
             {
                 string[] facilities = Utilities.ArrayFromCommaSeparatedList(facilityUpgrades);
-                var dict = new Dictionary<string, int>();
-                foreach (string s in facilities)
-                {
-                    string[] array = s.Split(new char[] { '@' }, 2);
-                    if (int.TryParse(array[1], out int level))
-                        dict[array[0]] = level;
-                }
+                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray(facilities);
                 SetFacilityLevels(dict);
             }
 
             // set KCT launchpads
+            if (KCT.Found && !string.IsNullOrEmpty(kctLaunchpads))
+            {
+                string[] pads = Utilities.ArrayFromCommaSeparatedList(kctLaunchpads);
+                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray(pads);
+                KCT.CreatePads(dict, kctRemoveDefaultPads);
+            }
 
             // set starting DU for TF
 
@@ -167,6 +177,9 @@ namespace CustomScenarioManager
         {
             Planetarium.SetUniversalTime(newUT);
             Utilities.Log($"Set UT: {newUT}");
+
+            if (RP0.Found)
+                RP0.ResetLastMaintenanceUpdate(newUT);
         }
 
         /// <summary>
@@ -256,7 +269,7 @@ namespace CustomScenarioManager
                     _ => "SpaceCenter/" + kvp.Key,
                 };
 
-                if(id != null && facility.id == id)
+                if (id != null && facility.id == id)
                 {
                     int level = kvp.Value;
                     level = Mathf.Clamp(level, 0, facility.MaxLevel);
@@ -273,6 +286,7 @@ namespace CustomScenarioManager
         /// <param name="techID"></param>
         public void UnlockTechnologies(IEnumerable<string> techID)
         {
+            AssetBase.RnDTechTree.ReLoad();
             foreach (string tech in techID)
             {
                 UnlockTechWithParents(tech);

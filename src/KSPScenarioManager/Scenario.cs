@@ -1,4 +1,5 @@
 ﻿using Contracts;
+using Expansions.Serenity.RobotArmFX;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,10 +18,12 @@ namespace CustomScenarioManager
         private string completedContracts = null;
         private string facilityUpgrades = null;
         private string kctLaunchpads = null;
-        private bool kctRemoveDefaultPads;
-        private float startingFunds;
-        private float startingScience;
-        private float startingRep;
+        private bool? kctRemoveDefaultPads = null;
+        private string tfStartingDU = null;
+        private string rfUnlockedConfigs = null;
+        private float? startingFunds = null;
+        private float? startingScience = null;
+        private float? startingRep = null;
 
         public string ScenarioName { get => scenarioName; set => scenarioName = value; }
         public string Description { get => description; set => description = value; }
@@ -29,10 +32,16 @@ namespace CustomScenarioManager
         public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
         public string FacilityUpgrades { get => facilityUpgrades; set => facilityUpgrades = value; }
         public string KCTLaunchpads { get => kctLaunchpads; set => kctLaunchpads = value; }
-        public bool KCTRemoveDefaltPads { get => kctRemoveDefaultPads; set => kctRemoveDefaultPads = value; }
-        public float StartingFunds { get => startingFunds; set => startingFunds = value; }
-        public float StartingScience { get => startingScience; set => startingScience = value; }
-        public float StartingRep { get => startingRep; set => startingRep = value; }
+        public bool KCTRemoveDefaltPads
+        {
+            get => kctRemoveDefaultPads ?? !string.IsNullOrEmpty(kctLaunchpads);
+            set => kctRemoveDefaultPads = value;
+        }
+        public string TFStartingDU { get => tfStartingDU; set => tfStartingDU = value; }
+        public string RFUnlockedConfigs { get => rfUnlockedConfigs; set => rfUnlockedConfigs = value; }
+        public float? StartingFunds { get => startingFunds; set => startingFunds = value; }
+        public float? StartingScience { get => startingScience; set => startingScience = value; }
+        public float? StartingRep { get => startingRep; set => startingRep = value; }
 
         public static Scenario Create(ConfigNode node, GameObject gameObject = null)
         {
@@ -41,25 +50,21 @@ namespace CustomScenarioManager
 
             Scenario x = gameObject.AddComponent<Scenario>();
 
-            node.TryGetValue("name", ref x.scenarioName);
-            node.TryGetValue("description", ref x.description);
-            node.TryGetValue("startingDate", ref x.startingDate);
-            node.TryGetValue("unlockedTechs", ref x.unlockedTechs);
-            node.TryGetValue("completedContracts", ref x.completedContracts);
-            node.TryGetValue("facilities", ref x.facilityUpgrades);
-            node.TryGetValue("kctLaunchpads", ref x.kctLaunchpads);
+            node.CSMTryGetValue("name", out x.scenarioName);
+            node.CSMTryGetValue("description", out x.description);
+            node.CSMTryGetValue("startingDate", out x.startingDate);
+            node.CSMTryGetValue("unlockedTechs", out x.unlockedTechs);
+            node.CSMTryGetValue("completedContracts", out x.completedContracts);
+            node.CSMTryGetValue("facilities", out x.facilityUpgrades);
+            node.CSMTryGetValue("kctLaunchpads", out x.kctLaunchpads);
+            node.CSMTryGetValue("tfStartingDU", out x.tfStartingDU);
+            node.CSMTryGetValue("rfUnlockedConfigs", out x.rfUnlockedConfigs);
+            node.CSMTryGetValue("startingRep", out x.startingRep);
+            node.CSMTryGetValue("startingScience", out x.startingScience);
+            node.CSMTryGetValue("startingFunds", out x.startingFunds);
 
-            if (!node.TryGetValue("kctRemoveDefaultPads", ref x.kctRemoveDefaultPads))
+            if (!node.CSMTryGetValue("kctRemoveDefaultPads", out x.kctRemoveDefaultPads))
                 x.kctRemoveDefaultPads = !string.IsNullOrEmpty(x.kctLaunchpads);
-
-            if (!node.TryGetValue("startingRep", ref x.startingRep))
-                x.startingRep = HighLogic.CurrentGame.Parameters.Career.StartingReputation;
-
-            if (!node.TryGetValue("startingScience", ref x.startingScience))
-                x.startingScience = HighLogic.CurrentGame.Parameters.Career.StartingScience;
-
-            if (!node.TryGetValue("startingFunds", ref x.startingFunds))
-                x.startingFunds = HighLogic.CurrentGame.Parameters.Career.StartingFunds;
 
             return x;
         }
@@ -77,9 +82,11 @@ namespace CustomScenarioManager
             facilityUpgrades = ScenarioManagerSettings.facilityUpgrades;
             kctLaunchpads = ScenarioManagerSettings.kctLaunchpads;
             kctRemoveDefaultPads = ScenarioManagerSettings.kctRemoveDefaultPads;
-            float.TryParse(ScenarioManagerSettings.startingFunds, out startingFunds);
-            float.TryParse(ScenarioManagerSettings.startingScience, out startingScience);
-            float.TryParse(ScenarioManagerSettings.startingRep, out startingRep);
+            tfStartingDU = ScenarioManagerSettings.tfStartingDU;
+            rfUnlockedConfigs = ScenarioManagerSettings.rfUnlockedConfigs;
+            ScenarioManagerSettings.startingFunds.CSMTryParse(out startingFunds);
+            ScenarioManagerSettings.startingScience.CSMTryParse(out startingScience);
+            ScenarioManagerSettings.startingRep.CSMTryParse(out startingRep);
         }
 
         public void SetParameters()
@@ -97,6 +104,7 @@ namespace CustomScenarioManager
             yield return WaitForInitialization(() => Reputation.Instance);
             yield return WaitForInitialization(() => Funding.Instance);
             yield return WaitForInitialization(() => ContractSystem.Instance);
+            yield return WaitForInitialization(() => PartLoader.Instance);
             // just to be even safer
             yield return new WaitForEndOfFrame();
 
@@ -128,7 +136,7 @@ namespace CustomScenarioManager
             if (!string.IsNullOrEmpty(facilityUpgrades))
             {
                 string[] facilities = Utilities.ArrayFromCommaSeparatedList(facilityUpgrades);
-                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray(facilities);
+                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray<int>(facilities);
                 SetFacilityLevels(dict);
             }
 
@@ -136,20 +144,36 @@ namespace CustomScenarioManager
             if (KCT.Found && !string.IsNullOrEmpty(kctLaunchpads))
             {
                 string[] pads = Utilities.ArrayFromCommaSeparatedList(kctLaunchpads);
-                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray(pads);
-                KCT.CreatePads(dict, kctRemoveDefaultPads);
+                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray<int>(pads);
+                KCT.CreatePads(dict, kctRemoveDefaultPads.GetValueOrDefault(true));
+            }
+
+            // unlock RF engine configs
+            if(RealFuels.Found && !string.IsNullOrEmpty(rfUnlockedConfigs))
+            {
+                string[] configs = Utilities.ArrayFromCommaSeparatedList(rfUnlockedConfigs);
+                RealFuels.UnlockEngineConfigs(configs);
             }
 
             // set starting DU for TF
+            if (TestFlight.Found && !string.IsNullOrEmpty(tfStartingDU))
+            {
+                string[] engines = Utilities.ArrayFromCommaSeparatedList(tfStartingDU);
+                Dictionary<string, float> dict = Utilities.DictionaryFromStringArray<float>(engines);
+                TestFlight.SetFlightDataForParts(dict);
+            }
 
             // set reputation
-            SetReputation(startingRep);
+            if (startingRep != null)
+                SetReputation(startingRep.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingReputation));
 
             // set science points
-            SetScience(startingScience);
+            if (startingScience != null)
+                SetScience(startingScience.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingScience));
 
             // set funds
-            SetFunds(startingFunds);
+            if (startingFunds != null)
+                SetFunds(startingFunds.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingFunds));
 
             Utilities.Log("Scenario applied");
             yield break;
@@ -218,15 +242,20 @@ namespace CustomScenarioManager
         /// <param name="contractsNames"></param>
         public void CompleteContracts(string[] contractsNames)
         {
-            foreach (Contract contract in ContractSystem.Instance.Contracts)
+            foreach (var node in GameDatabase.Instance.GetConfigNodes("CONTRACT_TYPE"))
             {
-                if (contractsNames.Contains(contract.Title))
+                string title = null;
+                if (node.TryGetValue("title", ref title) && contractsNames.Contains(title))
                 {
-                    CompleteContracts(new string[] { contract.Root.Title });
-                    contract.Accept();
-                    contract.Complete();
-
-                    break;
+                    foreach (var reqNode in node.GetNodes("REQUIREMENT") ?? new ConfigNode[] { })
+                    {
+                        string type = null;
+                        if (reqNode.TryGetValue("type", ref type) && type == "CompleteContract")
+                        {
+                            CompleteContracts(new string[] { reqNode.GetValue("contractType") });
+                        }
+                    }
+                    // actually complete the contract (needs CC?)
                 }
             }
         }
@@ -297,30 +326,40 @@ namespace CustomScenarioManager
         /// Unlocks a technology and all of its parents from its techID.
         /// </summary>
         /// <param name="techID"></param>
-        public void UnlockTechWithParents(string techID)
+        public void UnlockTechWithParents(string techID, List<ProtoRDNode> researchedNodes = null)
         {
-            AssetBase.RnDTechTree.FindTech(techID);
+            researchedNodes ??= new List<ProtoRDNode>();
             var rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
+
             //for some reason, this is not a static method and you need a reference
             var rdNode = rdNodes[0].FindNodeByID(techID, rdNodes);
+
             foreach (var parentNode in rdNode.parents ?? Enumerable.Empty<ProtoRDNode>())
             {
-                UnlockTechWithParents(parentNode);
+                if (!researchedNodes.Contains(parentNode))
+                    UnlockTechWithParents(parentNode, researchedNodes);
             }
+
             UnlockTech(techID);
+            researchedNodes.Add(rdNode);
         }
 
         /// <summary>
         /// Unlocks a technology and all of its parents.
         /// </summary>
         /// <param name="protoRDNode"></param>
-        public void UnlockTechWithParents(ProtoRDNode protoRDNode)
+        public void UnlockTechWithParents(ProtoRDNode protoRDNode, List<ProtoRDNode> researchedNodes = null)
         {
+            researchedNodes ??= new List<ProtoRDNode>();
+
             foreach (var parentNode in protoRDNode.parents ?? Enumerable.Empty<ProtoRDNode>())
             {
-                UnlockTechWithParents(parentNode);
+                if (!researchedNodes.Contains(parentNode))
+                    UnlockTechWithParents(parentNode, researchedNodes);
             }
-            UnlockTech(protoRDNode.tech.techID);
+
+            UnlockTech(protoRDNode.tech);
+            researchedNodes.Add(protoRDNode);
         }
 
         /// <summary>
@@ -334,7 +373,7 @@ namespace CustomScenarioManager
             ptn.techID = techID;
             ptn.scienceCost = 9999;
 
-            if (HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
+            if (!HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
             {
                 ptn.partsPurchased = PartLoader.Instance.loadedParts.Where(p => p.TechRequired == techID).ToList();
             }
@@ -356,7 +395,7 @@ namespace CustomScenarioManager
             ptn.state = RDTech.State.Available;
             string techID = ptn.techID;
 
-            if (HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
+            if (!HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
             {
                 ptn.partsPurchased = PartLoader.Instance.loadedParts.Where(p => p.TechRequired == techID).ToList();
             }

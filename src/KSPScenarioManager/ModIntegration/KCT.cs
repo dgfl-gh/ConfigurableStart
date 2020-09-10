@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace CustomScenarioManager
 {
@@ -44,41 +45,13 @@ namespace CustomScenarioManager
                     int level = padKvp.Value;
 
                     CreatePad.Invoke(null, new object[] { padName, level, removeOldPads });
+                    Utilities.Log($"Created new KCT pad: {padName}, level {level}");
                     removeOldPads = false;
                 }
             }
             else
             {
                 Utilities.Log("Couldn't find CreateNewPad method. Have you updated KCT?");
-            }
-        }
-
-        public static void AddUpgradePoints(List<string> upgrades)
-        {
-            int unspentPoints = 0, vabPoints = 0, sphPoints = 0, rdPoints = 0;
-
-            if (upgrades.FirstOrDefault(s => int.TryParse(s, out unspentPoints)) is string p)
-            {
-                upgrades.Remove(p);
-            }
-            var dict = Utilities.DictionaryFromStringArray(upgrades.ToArray());
-            foreach (var key in dict.Keys)
-            {
-                switch (key)
-                {
-                    case "VAB": vabPoints = dict[key]; break;
-                    case "SPH": sphPoints = dict[key]; break;
-                    case "RD": rdPoints = dict[key]; break;
-                }
-            }
-
-            if (KCTGameStatesType.GetMethod("UpdateUpgradePoints") is MethodInfo UpdateUpgradePoints)
-            {
-                UpdateUpgradePoints.Invoke(null, new object[] { unspentPoints, vabPoints, sphPoints, rdPoints });
-            }
-            else
-            {
-                Utilities.Log("Couldn't find UpdateUpgradePoints method. Have you updated KCT?");
             }
         }
     }

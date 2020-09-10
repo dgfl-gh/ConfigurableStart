@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -34,7 +35,7 @@ namespace CustomScenarioManager
         }
 
         private static Rect selectionWindowRect = new Rect(267, 104, 400, 200);
-        private static Rect editWindowRect = new Rect(Screen.width - 800, 104, 400, 100);
+        private static Rect editWindowRect = new Rect(Screen.width - 800, 104, 500, 100);
         private static bool shouldResetUIHeight = false;
         private static bool showSelectionUI = false;
         private static bool showEditUI = false;
@@ -90,9 +91,15 @@ namespace CustomScenarioManager
             {
                 if (scenarioNode == null)
                     return;
-
-                var s = Scenario.Create(scenarioNode);
-                LoadedScenarios[s.ScenarioName] = s;
+                try
+                {
+                    var s = Scenario.Create(scenarioNode);
+                    LoadedScenarios[s.ScenarioName] = s;
+                }
+                catch (Exception ex)
+                {
+                    Utilities.Log($"{ex}");
+                }
             }
             int count = LoadedScenarios.Count() - 1;
             Utilities.Log($"Found {count} scenario{(count > 1 ? "s" : "")}");

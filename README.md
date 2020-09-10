@@ -11,7 +11,7 @@ do anything after you see the KSC for the first time; the mod will stop too.
 
 It offers an in-game GUI that allows you to choose an available preset and edit any of the custom fields, but also allows modders to include their own config file which will
 be automatically detected by the mod and added to the avaialbe presets. For more information on what each field does, and how to format your config, refer to the scenarios.cfg
-file in GameData/KSPScenarioManager or to the wiki.
+file in GameData/KSPScenarioManager or to the [wiki](https://github.com/Standecco/CustomScenarioManager/wiki).
 
 ## Ideas and options
 If you're a planet maker and want to create a career experience that suits your system more, or you want to create an elaborate contract progression, or perhaps you want
@@ -25,11 +25,12 @@ will automatically start there.
 the starting date, technology level, starting facilities and initial funding amount 
 
 ### Currently supported mods:
-- KCT 
+- KCT (create KCT pads)
+- TestFlight (set DU for engines)
+- RealFuels (unlock engine configs)
 - RP-1
 - Kopernicus/custom planet packs
-- Principia (not tested yet)
+- Principia (should be fine, not tested yet)
 
 ### Planned support (open to suggestions):
-- Contract configurator
-- TestFlight
+- automatic contract completion through Contract configurator

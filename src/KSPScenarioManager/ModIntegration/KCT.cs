@@ -37,16 +37,20 @@ namespace CustomScenarioManager
         {
             if (!Found) return;
 
-            if(KCTGameStatesType.GetMethod("CreateNewPad") is MethodInfo CreatePad)
+            if (removeOldPads && KCTGameStatesType.GetMethod("ClearLaunchpadList") is MethodInfo ClearPads)
+            {
+                ClearPads.Invoke(null, new object[] { });
+            }
+
+            if (KCTGameStatesType.GetMethod("CreateNewPad") is MethodInfo CreatePad)
             {
                 foreach (var padKvp in pads)
                 {
                     string padName = padKvp.Key;
                     int level = padKvp.Value;
 
-                    CreatePad.Invoke(null, new object[] { padName, level, removeOldPads });
+                    CreatePad.Invoke(null, new object[] { padName, level });
                     Utilities.Log($"Created new KCT pad: {padName}, level {level}");
-                    removeOldPads = false;
                 }
             }
             else

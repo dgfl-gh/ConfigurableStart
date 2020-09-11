@@ -9,7 +9,8 @@ namespace CustomScenarioManager
         public static string activeScenario;
         public static string startingDate;
         public static string unlockedTechs;
-        //public static string completedContracts;
+        public static bool unlockPartsInParentNodes;
+        public static string unlockPartsFields;
         public static string facilityUpgrades;
         public static string startingFunds;
         public static string startingScience;
@@ -35,10 +36,14 @@ namespace CustomScenarioManager
                 unlockedTechs = GUILayout.TextField(unlockedTechs, HighLogic.Skin.textField);
                 GUILayout.EndHorizontal();
 
-                //GUILayout.BeginHorizontal();
-                //GUILayout.Label("Completed Contracts: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                //completedContracts = GUILayout.TextField(completedContracts, HighLogic.Skin.textField);
-                //GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                unlockPartsInParentNodes = GUILayout.Toggle(unlockPartsInParentNodes, "Unlock parts in parent nodes ", HighLogic.Skin.toggle);
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Part unlock fields: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
+                unlockPartsFields = GUILayout.TextField(unlockPartsFields, HighLogic.Skin.textField);
+                GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Facility Levels: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
@@ -69,7 +74,7 @@ namespace CustomScenarioManager
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad: " , HighLogic.Skin.toggle);
+                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad " , HighLogic.Skin.toggle);
                     GUILayout.EndHorizontal();
                 }
 
@@ -114,7 +119,8 @@ namespace CustomScenarioManager
             activeScenario = scn.ScenarioName;
             startingDate = scn.StartingDate;
             unlockedTechs = scn.UnlockedTechs;
-            //completedContracts = scn.CompletedContracts;
+            unlockPartsInParentNodes = scn.UnlockPartsInParentNodes;
+            unlockPartsFields = scn.UnlockPartsFields;
             kctLaunchpads = scn.KCTLaunchpads;
             kctRemoveDefaultPads = scn.KCTRemoveDefaltPads;
             facilityUpgrades = scn.FacilityUpgrades;

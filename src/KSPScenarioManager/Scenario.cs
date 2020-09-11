@@ -1,6 +1,4 @@
-﻿using Contracts;
-using Expansions.Serenity.RobotArmFX;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +13,8 @@ namespace CustomScenarioManager
         private string description = null;
         private string startingDate = null;
         private string unlockedTechs = null;
-        private string completedContracts = null;
+        private bool? unlockPartsInParentNodes = null;
+        private string unlockPartsFields = null;
         private string facilityUpgrades = null;
         private string kctLaunchpads = null;
         private bool? kctRemoveDefaultPads = null;
@@ -29,7 +28,12 @@ namespace CustomScenarioManager
         public string Description { get => description; set => description = value; }
         public string StartingDate { get => startingDate; set => startingDate = value; }
         public string UnlockedTechs { get => unlockedTechs; set => unlockedTechs = value; }
-        public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
+        public bool UnlockPartsInParentNodes
+        {
+            get => unlockPartsInParentNodes ?? true;
+            set => unlockPartsInParentNodes = value;
+        }
+        public string UnlockPartsFields { get => unlockPartsFields; set => unlockPartsFields = value; }
         public string FacilityUpgrades { get => facilityUpgrades; set => facilityUpgrades = value; }
         public string KCTLaunchpads { get => kctLaunchpads; set => kctLaunchpads = value; }
         public bool KCTRemoveDefaltPads
@@ -54,7 +58,8 @@ namespace CustomScenarioManager
             node.CSMTryGetValue("description", out x.description);
             node.CSMTryGetValue("startingDate", out x.startingDate);
             node.CSMTryGetValue("unlockedTechs", out x.unlockedTechs);
-            node.CSMTryGetValue("completedContracts", out x.completedContracts);
+            node.CSMTryGetValue("unlockPartsInParentNodes", out x.unlockPartsInParentNodes);
+            node.CSMTryGetValue("unlockParts", out x.unlockPartsFields);
             node.CSMTryGetValue("facilities", out x.facilityUpgrades);
             node.CSMTryGetValue("kctLaunchpads", out x.kctLaunchpads);
             node.CSMTryGetValue("tfStartingDU", out x.tfStartingDU);
@@ -74,11 +79,12 @@ namespace CustomScenarioManager
             return !string.IsNullOrEmpty(scenarioName);
         }
 
-        public void UpdateFromSetings()
+        public void UpdateFromSettings()
         {
             startingDate = ScenarioManagerSettings.startingDate;
             unlockedTechs = ScenarioManagerSettings.unlockedTechs;
-            //completedContracts = ScenarioManagerSettings.completedContracts;
+            unlockPartsInParentNodes = ScenarioManagerSettings.unlockPartsInParentNodes;
+            unlockPartsFields = ScenarioManagerSettings.unlockPartsFields;
             facilityUpgrades = ScenarioManagerSettings.facilityUpgrades;
             kctLaunchpads = ScenarioManagerSettings.kctLaunchpads;
             kctRemoveDefaultPads = ScenarioManagerSettings.kctRemoveDefaultPads;
@@ -103,8 +109,10 @@ namespace CustomScenarioManager
             yield return WaitForInitialization(() => ResearchAndDevelopment.Instance);
             yield return WaitForInitialization(() => Reputation.Instance);
             yield return WaitForInitialization(() => Funding.Instance);
-            yield return WaitForInitialization(() => ContractSystem.Instance);
             yield return WaitForInitialization(() => PartLoader.Instance);
+            if (RP0.Found) yield return WaitForInitialization(() => RP0.Instance);
+            if (TestFlight.Found) yield return WaitForInitialization(() => TestFlight.Instance);
+
             // just to be even safer
             yield return new WaitForEndOfFrame();
 
@@ -119,37 +127,29 @@ namespace CustomScenarioManager
             // unlock technologies
             if (!string.IsNullOrEmpty(unlockedTechs))
             {
-                string[] techIDs = Utilities.ArrayFromCommaSeparatedList(unlockedTechs);
-                UnlockTechnologies(techIDs);
-            }
+                Dictionary<string, bool> techIDs = Utilities.DictionaryFromString(unlockedTechs, defaultValue: true);
+                Dictionary<string, string> partUnlockFields;
+                partUnlockFields = string.IsNullOrEmpty(unlockPartsFields) ? null : Utilities.DictionaryFromString<string>(unlockPartsFields);
 
-            // complete contracts
-            if (!string.IsNullOrEmpty(completedContracts))
-            {
-                string[] contracts = Utilities.ArrayFromCommaSeparatedList(completedContracts);
-                CompleteContracts(contracts);
+                UnlockTechnologies(techIDs, partUnlockFields);
             }
-
-            // remove flagged contracts
 
             // set facility levels
             if (!string.IsNullOrEmpty(facilityUpgrades))
             {
-                string[] facilities = Utilities.ArrayFromCommaSeparatedList(facilityUpgrades);
-                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray<int>(facilities);
-                SetFacilityLevels(dict);
+                Dictionary<string, int> facilities = Utilities.DictionaryFromString<int>(facilityUpgrades);
+                SetFacilityLevels(facilities);
             }
 
             // set KCT launchpads
             if (KCT.Found && !string.IsNullOrEmpty(kctLaunchpads))
             {
-                string[] pads = Utilities.ArrayFromCommaSeparatedList(kctLaunchpads);
-                Dictionary<string, int> dict = Utilities.DictionaryFromStringArray<int>(pads);
-                KCT.CreatePads(dict, kctRemoveDefaultPads.GetValueOrDefault(true));
+                Dictionary<string, int> pads = Utilities.DictionaryFromString<int>(kctLaunchpads);
+                KCT.CreatePads(pads, kctRemoveDefaultPads.GetValueOrDefault(true));
             }
 
             // unlock RF engine configs
-            if(RealFuels.Found && !string.IsNullOrEmpty(rfUnlockedConfigs))
+            if (RealFuels.Found && !string.IsNullOrEmpty(rfUnlockedConfigs))
             {
                 string[] configs = Utilities.ArrayFromCommaSeparatedList(rfUnlockedConfigs);
                 RealFuels.UnlockEngineConfigs(configs);
@@ -158,9 +158,8 @@ namespace CustomScenarioManager
             // set starting DU for TF
             if (TestFlight.Found && !string.IsNullOrEmpty(tfStartingDU))
             {
-                string[] engines = Utilities.ArrayFromCommaSeparatedList(tfStartingDU);
-                Dictionary<string, float> dict = Utilities.DictionaryFromStringArray<float>(engines);
-                TestFlight.SetFlightDataForParts(dict);
+                Dictionary<string, float> engines = Utilities.DictionaryFromString<float>(tfStartingDU);
+                TestFlight.SetFlightDataForParts(engines);
             }
 
             // set reputation
@@ -237,30 +236,6 @@ namespace CustomScenarioManager
         }
 
         /// <summary>
-        /// Complete each contract specified in the config.
-        /// </summary>
-        /// <param name="contractsNames"></param>
-        public void CompleteContracts(string[] contractsNames)
-        {
-            foreach (var node in GameDatabase.Instance.GetConfigNodes("CONTRACT_TYPE"))
-            {
-                string title = null;
-                if (node.TryGetValue("title", ref title) && contractsNames.Contains(title))
-                {
-                    foreach (var reqNode in node.GetNodes("REQUIREMENT") ?? new ConfigNode[] { })
-                    {
-                        string type = null;
-                        if (reqNode.TryGetValue("type", ref type) && type == "CompleteContract")
-                        {
-                            CompleteContracts(new string[] { reqNode.GetValue("contractType") });
-                        }
-                    }
-                    // actually complete the contract (needs CC?)
-                }
-            }
-        }
-
-        /// <summary>
         /// Set the level of each facility specified in the config.
         /// </summary>
         /// <param name="facilityKeyValuePairs"></param>
@@ -312,92 +287,64 @@ namespace CustomScenarioManager
         /// <summary>
         /// Iterates through each tech that is defined in the Config and calls UnlockTech()
         /// </summary>
-        /// <param name="techID"></param>
-        public void UnlockTechnologies(IEnumerable<string> techID)
+        /// <param name="techIDs"></param>
+        public void UnlockTechnologies(Dictionary<string, bool> techIDs, Dictionary<string, string> partUnlockFields)
         {
+            var researchedNodes = new List<ProtoRDNode>();
+
             AssetBase.RnDTechTree.ReLoad();
-            foreach (string tech in techID)
+            foreach (string tech in techIDs.Keys)
             {
-                UnlockTechWithParents(tech);
+                UnlockTechFromTechID(tech, researchedNodes, techIDs[tech], false, partUnlockFields);
             }
         }
 
         /// <summary>
-        /// Unlocks a technology and all of its parents from its techID.
+        /// Find a ProtoRDNode from its techID and unlocks it, along with all its parents.
         /// </summary>
         /// <param name="techID"></param>
-        public void UnlockTechWithParents(string techID, List<ProtoRDNode> researchedNodes = null)
+        public void UnlockTechFromTechID(string techID, List<ProtoRDNode> researchedNodes, bool unlockParts, bool isRecursive, Dictionary<string, string> partUnlockFields)
         {
-            researchedNodes ??= new List<ProtoRDNode>();
-            var rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
-
+            List<ProtoRDNode> rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
             //for some reason, this is not a static method and you need a reference
             var rdNode = rdNodes[0].FindNodeByID(techID, rdNodes);
 
-            foreach (var parentNode in rdNode.parents ?? Enumerable.Empty<ProtoRDNode>())
-            {
-                if (!researchedNodes.Contains(parentNode))
-                    UnlockTechWithParents(parentNode, researchedNodes);
-            }
-
-            UnlockTech(techID);
-            researchedNodes.Add(rdNode);
+            UnlockTechWithParents(rdNode, researchedNodes, unlockParts, isRecursive, partUnlockFields);
         }
 
         /// <summary>
-        /// Unlocks a technology and all of its parents.
+        /// Unlock a technology and all of its parents.
         /// </summary>
         /// <param name="protoRDNode"></param>
-        public void UnlockTechWithParents(ProtoRDNode protoRDNode, List<ProtoRDNode> researchedNodes = null)
+        public void UnlockTechWithParents(ProtoRDNode protoRDNode, List<ProtoRDNode> researchedNodes, bool unlockParts, bool isRecursive, Dictionary<string, string> partUnlockFields)
         {
-            researchedNodes ??= new List<ProtoRDNode>();
-
             foreach (var parentNode in protoRDNode.parents ?? Enumerable.Empty<ProtoRDNode>())
             {
                 if (!researchedNodes.Contains(parentNode))
-                    UnlockTechWithParents(parentNode, researchedNodes);
+                    UnlockTechWithParents(parentNode, researchedNodes, unlockParts, true, partUnlockFields);
             }
 
-            UnlockTech(protoRDNode.tech);
+            bool b = unlockParts && (!isRecursive || (isRecursive && UnlockPartsInParentNodes));
+            UnlockTech(protoRDNode.tech, b, partUnlockFields);
             researchedNodes.Add(protoRDNode);
         }
 
         /// <summary>
-        /// Unlocks a technology and all of the parts inside of the node. Includes handling for Part Unlock Costs. Code derived from Contract Configurator.
-        /// </summary>
-        /// <param name="techID"> The techID of the node to unlock</param>
-        public void UnlockTech(string techID)
-        {
-            ProtoTechNode ptn = new ProtoTechNode();
-            ptn.state = RDTech.State.Available;
-            ptn.techID = techID;
-            ptn.scienceCost = 9999;
-
-            if (!HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
-            {
-                ptn.partsPurchased = PartLoader.Instance.loadedParts.Where(p => p.TechRequired == techID).ToList();
-            }
-            else
-            {
-                ptn.partsPurchased = new List<AvailablePart>();
-            }
-
-            ResearchAndDevelopment.Instance.SetTechState(techID, ptn);
-            Utilities.Log($"Unlocked tech: {techID}");
-        }
-
-        /// <summary>
-        /// Unlocks a technology and all of the parts inside of the node. Includes handling for Part Unlock Costs. Code derived from Contract Configurator.
+        /// Unlock a technology and all of the parts inside of the node. Includes handling for Part Unlock Costs. Code derived from Contract Configurator.
+        /// Unlock parts if
         /// </summary>
         /// <param name="ptn"> The node to unlock</param>
-        public void UnlockTech(ProtoTechNode ptn)
+        /// <param name="partUnlockFields"> The dict of fields to either unlock or non-unlock parts from the node, according to unlockParts.</param>
+        /// <param name="unlockParts"> The bool that dictates the default unlock behaviour. If true, unlock all parts except those that match partUnlockFields
+        /// If false, only unlock the parts that match partUnlockFields. </param>
+        public void UnlockTech(ProtoTechNode ptn, bool unlockParts, Dictionary<string, string> partUnlockFields)
         {
             ptn.state = RDTech.State.Available;
             string techID = ptn.techID;
 
             if (!HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch)
             {
-                ptn.partsPurchased = PartLoader.Instance.loadedParts.Where(p => p.TechRequired == techID).ToList();
+                ptn.partsPurchased = MatchingParts(techID, unlockParts, partUnlockFields);
             }
             else
             {
@@ -406,6 +353,45 @@ namespace CustomScenarioManager
 
             ResearchAndDevelopment.Instance.SetTechState(techID, ptn);
             Utilities.Log($"Unlocked tech: {techID}");
+        }
+
+        /// <summary>
+        /// Unlock the parts contained in a tech node, blacklisting or whitelisting them based on input arguments.
+        /// </summary>
+        /// <param name="techID"> The techID of the node containing the parts.</param>
+        /// <param name="defaultUnlockParts"> Wheter the default behaviour is to buy or not buy parts.</param>
+        /// <param name="partUnlockFields"> The dictionary&lt;string, string&gt; of field,value kvp that either selects the parts to buy or to not buy,
+        /// depending on default behaviour.</param>
+        /// <returns></returns>
+        public List<AvailablePart> MatchingParts(string techID, bool defaultUnlockParts, Dictionary<string, string> partUnlockFields)
+        {
+            var parts = new List<AvailablePart>();
+            partUnlockFields ??= new Dictionary<string, string>(0);
+
+            if (defaultUnlockParts)
+            {
+                parts = PartLoader.Instance.loadedParts.Where(p => p.TechRequired == techID).ToList();
+
+                foreach (var fieldName in partUnlockFields.Keys)
+                {
+                    string fieldValue = partUnlockFields[fieldName];
+
+                    parts.RemoveAll(p => p.GetType().GetField(fieldName)?.GetValue(p).ToString() == fieldValue);
+                }
+            }
+            else
+            {
+                foreach (var fieldName in partUnlockFields.Keys)
+                {
+                    string fieldValue = partUnlockFields[fieldName];
+
+                    parts.AddRange(PartLoader.Instance.loadedParts
+                        .Where(p => p.TechRequired == techID)
+                        .Where(p => p.GetType().GetField(fieldName)?.GetValue(p).ToString() == fieldValue));
+                }
+            }
+
+            return parts;
         }
     }
 }

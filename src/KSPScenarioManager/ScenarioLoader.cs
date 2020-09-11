@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace CustomScenarioManager
 {
-    // FEATURES & REQUIREMENTS
-    // Contract Completion / Removal (Contract Configurator)
-    // Engine Unlocks (RealFuels)
-
     [KSPAddon(KSPAddon.Startup.MainMenu, false)]
     public class ScenarioLoader : MonoBehaviour
     {
@@ -184,7 +180,7 @@ namespace CustomScenarioManager
 
         public static void UpdateCurrentScenario()
         {
-            CurrentScenario.UpdateFromSetings();
+            CurrentScenario.UpdateFromSettings();
         }
 
         public static void ShowSelectionUI(bool b)

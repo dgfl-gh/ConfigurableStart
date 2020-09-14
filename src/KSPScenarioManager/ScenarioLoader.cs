@@ -43,7 +43,7 @@ namespace CustomScenarioManager
 
             if (!mainMenuVisited)
             {
-                GameEvents.onGameNewStart.Add(Instantiate);
+                GameEvents.onGameNewStart.Add(SetScenario);
                 mainMenuVisited = true;
             }
 
@@ -68,12 +68,13 @@ namespace CustomScenarioManager
             }
         }
 
-        public void Instantiate()
+        public void SetScenario()
         {
             ShowSelectionUI(false);
             ShowEditUI(false);
 
             SetActiveScenario(ScenarioManagerSettings.activeScenario);
+            Destroy(this);
         }
 
         public void LoadScenarios()
@@ -104,7 +105,7 @@ namespace CustomScenarioManager
 
         public void SetActiveScenario(string scenarioName)
         {
-            if (CurrentScenario == null || CurrentScenario.name == "None")
+            if (LoadedScenarios == null || scenarioName == null ||  scenarioName == "None")
                 return;
 
             if (LoadedScenarios.ContainsKey(scenarioName))

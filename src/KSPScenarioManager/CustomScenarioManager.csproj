@@ -53,6 +53,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomScenarioData.cs" />
     <Compile Include="DateHandler.cs" />
     <Compile Include="ModIntegration\KCT.cs" />
     <Compile Include="ModIntegration\RealFuels.cs" />

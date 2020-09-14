@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Reflection;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
 
 namespace CustomScenarioManager
@@ -50,16 +50,17 @@ namespace CustomScenarioManager
         {
             if (Instance == null) return;
 
-            if(FlightManagerScenarioType.GetMethod("SetFlightDataForPartName") is MethodInfo SetFlightDataForPartName)
+            if (FlightManagerScenarioType.GetMethod("SetFlightDataForPartName") is MethodInfo SetFlightDataForPartName)
             {
-                foreach(KeyValuePair<string, float> kvp in data)
+                foreach (KeyValuePair<string, float> kvp in data)
                 {
                     try
                     {
                         //kvp.Key = part name
-                        //kvp.Value = flight data;
+                        //kvp.Value = flight data
                         SetFlightDataForPartName.Invoke(Instance, new object[] { kvp.Key, kvp.Value });
                         Utilities.Log($"Flight Data for part {kvp.Key} set to {kvp.Value}");
+                        CustomScenarioData.tfStartingDU.Append($"{kvp.Key}@{kvp.Value},");
                     }
                     catch (Exception ex)
                     {

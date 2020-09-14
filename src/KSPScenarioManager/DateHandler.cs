@@ -10,6 +10,11 @@ namespace CustomScenarioManager
 
         private static readonly IDateTimeFormatter timeFormatter = KSPUtil.dateTimeFormatter;
 
+        public static string GetFormattedDateString(long UT)
+        {
+            return timeFormatter.PrintDateCompact(UT, true);
+        }
+
         public static long GetUTFromDate(string dateString)
         {
             if (!long.TryParse(dateString, out long newUT))

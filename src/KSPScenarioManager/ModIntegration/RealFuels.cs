@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CustomScenarioManager
 {
@@ -44,6 +40,7 @@ namespace CustomScenarioManager
                 {
                     SetUnlocked.Invoke(null, new object[] { config });
                     Utilities.Log($"Unlocked {config} engine config");
+                    CustomScenarioData.rfUnlockedConfigs.Append(config + ",");
                 }
             }
             else

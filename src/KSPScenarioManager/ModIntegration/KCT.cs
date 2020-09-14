@@ -51,6 +51,7 @@ namespace CustomScenarioManager
 
                     CreatePad.Invoke(null, new object[] { padName, level });
                     Utilities.Log($"Created new KCT pad: {padName}, level {level}");
+                    CustomScenarioData.kctLaunchpads.Append($"{padName}@{level},");
                 }
             }
             else

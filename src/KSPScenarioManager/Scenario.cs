@@ -47,6 +47,8 @@ namespace CustomScenarioManager
         public float? StartingScience { get => startingScience; set => startingScience = value; }
         public float? StartingRep { get => startingRep; set => startingRep = value; }
 
+        public long StartingUT => string.IsNullOrEmpty(startingDate) ? 0 : DateHandler.GetUTFromDate(startingDate);
+
         public static Scenario Create(ConfigNode node, GameObject gameObject = null)
         {
             if (gameObject == null)
@@ -119,7 +121,7 @@ namespace CustomScenarioManager
             // set date
             if (!string.IsNullOrEmpty(startingDate))
             {
-                startingDate.Trim();
+                startingDate = startingDate.Trim();
                 long UT = DateHandler.GetUTFromDate(startingDate);
                 SetDate(UT);
             }
@@ -174,6 +176,7 @@ namespace CustomScenarioManager
             if (startingFunds != null)
                 SetFunds(startingFunds.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingFunds));
 
+            CustomScenarioData.UpdateAppliedScenarioFields();
             Utilities.Log("Scenario applied");
             yield break;
         }
@@ -199,6 +202,7 @@ namespace CustomScenarioManager
         public void SetDate(long newUT)
         {
             Planetarium.SetUniversalTime(newUT);
+            CustomScenarioData.startingDate.Append(DateHandler.GetFormattedDateString(newUT));
             Utilities.Log($"Set UT: {newUT}");
 
             if (RP0.Found)
@@ -213,6 +217,7 @@ namespace CustomScenarioManager
         {
             Funding.Instance.SetFunds(funds, TransactionReasons.Progression);
             Utilities.Log($"Set funds: {funds}");
+            CustomScenarioData.startingFunds.Append(funds);
         }
 
         /// <summary>
@@ -223,6 +228,7 @@ namespace CustomScenarioManager
         {
             ResearchAndDevelopment.Instance.SetScience(science, TransactionReasons.Progression);
             Utilities.Log($"Set science: {science}");
+            CustomScenarioData.startingScience.Append(science);
         }
 
         /// <summary>
@@ -233,6 +239,7 @@ namespace CustomScenarioManager
         {
             Reputation.Instance.SetReputation(rep, TransactionReasons.Progression);
             Utilities.Log($"Set reputation: {rep}");
+            CustomScenarioData.startingRep.Append(rep);
         }
 
         /// <summary>
@@ -243,42 +250,45 @@ namespace CustomScenarioManager
         {
             foreach (var facility in facilityKeyValuePairs.Keys)
             {
-                int level = facilityKeyValuePairs[facility];
-                SetFacilityLevel(new KeyValuePair<string, int>(facility, level));
+                int level = facilityKeyValuePairs[facility] - 1;
+                SetFacilityLevel(facility, level);
             }
         }
 
         /// <summary>
         /// Set the level of a facility.
         /// </summary>
-        /// <param name="kvp">key = Facility Name <br> value = Facility Level</br></param>
-        public void SetFacilityLevel(KeyValuePair<string, int> kvp)
+        /// <param name="id"> the id of the facility</param>
+        /// <param name="level"> the new level of the facility</param>
+        public void SetFacilityLevel(string id, int level)
         {
+            if (id == null) return;
+
+            id = id.ToUpper() switch
+            {
+                "VAB" => "SpaceCenter/VehicleAssemblyBuilding",
+                "SPH" => "SpaceCenter/SpaceplaneHangar",
+                "RUNWAY" => "SpaceCenter/Runway",
+                "R&D" => "SpaceCenter/ResearchAndDevelopment",
+                "RD" => "SpaceCenter/ResearchAndDevelopment",
+                "RESEARCH" => "SpaceCenter/ResearchAndDevelopment",
+                "ASTRONAUT" => "SpaceCenter/AstronautComplex",
+                "TRACKING" => "SpaceCenter/TrackingStation",
+                "MISSION" => "SpaceCenter/MissionControl",
+                "PAD" => "SpaceCenter/LaunchPad",
+                "LAUNCHPAD" => "SpaceCenter/LaunchPad",
+                "ADMIN" => "SpaceCenter/Administration",
+                _ => "SpaceCenter/" + id,
+            };
+
             foreach (UpgradeableFacility facility in FindObjectsOfType<UpgradeableFacility>())
             {
-                string id = kvp.Key.ToUpper() switch
+                if (facility.id == id)
                 {
-                    "VAB" => "SpaceCenter/VehicleAssemblyBuilding",
-                    "SPH" => "SpaceCenter/SpaceplaneHangar",
-                    "RUNWAY" => "SpaceCenter/Runway",
-                    "R&D" => "SpaceCenter/ResearchAndDevelopment",
-                    "RD" => "SpaceCenter/ResearchAndDevelopment",
-                    "RESEARCH" => "SpaceCenter/ResearchAndDevelopment",
-                    "ASTRONAUT" => "SpaceCenter/AstronautComplex",
-                    "TRACKING" => "SpaceCenter/TrackingStation",
-                    "MISSION" => "SpaceCenter/MissionControl",
-                    "PAD" => "SpaceCenter/LaunchPad",
-                    "LAUNCHPAD" => "SpaceCenter/LaunchPad",
-                    "ADMIN" => "SpaceCenter/Administration",
-                    _ => "SpaceCenter/" + kvp.Key,
-                };
-
-                if (id != null && facility.id == id)
-                {
-                    int level = kvp.Value;
                     level = Mathf.Clamp(level, 0, facility.MaxLevel);
                     facility.SetLevel(level);
-                    Utilities.Log($"Set {facility.name} level: {level}");
+                    Utilities.Log($"Upgraded {facility.name} to level {++level}");
+                    CustomScenarioData.facilitiesUpgraded.Append($"{facility.name}@{level},");
                     break;
                 }
             }
@@ -305,11 +315,16 @@ namespace CustomScenarioManager
         /// <param name="techID"></param>
         public void UnlockTechFromTechID(string techID, List<ProtoRDNode> researchedNodes, bool unlockParts, bool isRecursive, Dictionary<string, string> partUnlockFields)
         {
-            List<ProtoRDNode> rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
-            //for some reason, this is not a static method and you need a reference
-            var rdNode = rdNodes[0].FindNodeByID(techID, rdNodes);
+            if (string.IsNullOrEmpty(techID)) return;
 
-            UnlockTechWithParents(rdNode, researchedNodes, unlockParts, isRecursive, partUnlockFields);
+            //for some reason, FindNodeByID is not a static method and you need a reference
+            List<ProtoRDNode> rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
+            if (rdNodes[0].FindNodeByID(techID, rdNodes) is ProtoRDNode rdNode)
+            {
+                UnlockTechWithParents(rdNode, researchedNodes, unlockParts, isRecursive, partUnlockFields);
+            }
+            else
+                Utilities.Log($"{techID} node not found");
         }
 
         /// <summary>
@@ -353,6 +368,8 @@ namespace CustomScenarioManager
 
             ResearchAndDevelopment.Instance.SetTechState(techID, ptn);
             Utilities.Log($"Unlocked tech: {techID}");
+            CustomScenarioData.unlockedTechs.Append(techID + ",");
+            ptn.partsPurchased.ForEach(p => CustomScenarioData.unlockedParts.Append(p + ","));
         }
 
         /// <summary>

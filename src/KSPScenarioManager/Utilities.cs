@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace CustomScenarioManager
@@ -49,7 +50,7 @@ namespace CustomScenarioManager
         public static void Log(string s)
         {
 #if DEBUG
-            Debug.Log($"[CustomScenarioManager]: {s}");
+            Debug.Log($"[CustomScenarioManager] {s}");
 #endif
         }
 
@@ -70,16 +71,19 @@ namespace CustomScenarioManager
         public static Dictionary<string, T> DictionaryFromStringArray<T>(string[] inputArray, char[] separator = null, T defaultValue = default)
         {
             separator ??= new char[] { '@' };
-
             var dict = new Dictionary<string, T>();
-            foreach (string s in inputArray)
-            {
-                string[] array = s.Split(separator, 2);
 
-                if (array.Length > 1 && array[1].CSMTryParse(out T value, defaultValue))
-                    dict[array[0]] = value;
-                else
-                    dict[array[0]] = defaultValue;
+            if (inputArray != null && inputArray.Length > 0)
+            {
+                foreach (string s in inputArray)
+                {
+                    string[] array = s.Split(separator, 2);
+
+                    if (array.Length > 1 && array[1].CSMTryParse(out T value, defaultValue))
+                        dict[array[0]] = value;
+                    else
+                        dict[array[0]] = defaultValue;
+                }
             }
 
             return dict;
@@ -87,13 +91,23 @@ namespace CustomScenarioManager
 
         public static string[] ArrayFromCommaSeparatedList(string listString)
         {
-            listString.Trim();
+            if (string.IsNullOrEmpty(listString)) return new string[] { };
+
+            listString = listString.Trim();
 
             IEnumerable<string> selection = listString.Split(',');
             selection = selection.Select(s => s.Trim());
             selection = selection.Where(s => s != string.Empty);
 
             return selection.ToArray();
+        }
+
+        public static string FormatCommaSeparatedList(string input)
+        {
+            string[] array = ArrayFromCommaSeparatedList(input);
+            if (array.Length == 0) return "";
+
+            return string.Join(",", array);
         }
     }
 }

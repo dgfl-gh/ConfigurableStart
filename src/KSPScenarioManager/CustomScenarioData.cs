@@ -45,26 +45,15 @@ namespace CustomScenarioManager
 
         public override void OnAwake()
         {
-            Instance = this;
-
             if (Initialized) return;
-
-            if (CurrentScenario == null)
-            {
-                CurrentScenarioName = "None";
-            }
-            else
-            {
-                CurrentScenarioName = CurrentScenario.ScenarioName;
-            }
-
-            UpdateAppliedScenarioFields();
+            Instance = this;
         }
 
         public static void UpdateAppliedScenarioFields()
         {
             if (Instance == null) return;
 
+            Instance.CurrentScenarioName = CurrentScenario.ScenarioName;
             Instance.StartingDate = startingDate.ToString();
             Instance.UnlockedTechs = unlockedTechs.ToString();
             Instance.UnlockedParts = unlockedParts.ToString();
@@ -79,6 +68,8 @@ namespace CustomScenarioManager
 
             Instance.Initialized = true;
             ResetAppliedScenarioFields();
+
+            Utilities.Log("Updated persistent savegame info");
         }
 
         private static void TrimEndingCommas()

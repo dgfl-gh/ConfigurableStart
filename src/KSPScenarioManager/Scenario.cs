@@ -552,6 +552,7 @@ namespace CustomScenarioManager
             yield return new WaitForFixedUpdate();
 
             Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
+            CustomScenarioData.completedContracts.Append(c.subType);
             Utilities.Log($"Completed contract {c.subType}");
         }
     }

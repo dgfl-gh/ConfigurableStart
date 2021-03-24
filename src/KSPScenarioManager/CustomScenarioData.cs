@@ -17,6 +17,7 @@ namespace CustomScenarioManager
         public static StringBuilder kctLaunchpads = new StringBuilder("");
         public static StringBuilder tfStartingDU = new StringBuilder("");
         public static StringBuilder rfUnlockedConfigs = new StringBuilder("");
+        public static StringBuilder completedContracts = new StringBuilder("");
 
         [KSPField(isPersistant = true)]
         public bool Initialized = false;
@@ -42,6 +43,8 @@ namespace CustomScenarioManager
         public string TFStartingDU;
         [KSPField(isPersistant = true)]
         public string RFUnlockedConfigs;
+        [KSPField(isPersistant = true)]
+        public string CompletedContracts;
 
         public override void OnAwake()
         {
@@ -64,6 +67,7 @@ namespace CustomScenarioManager
             Instance.StartingFunds = startingFunds.ToString();
             Instance.StartingScience = startingScience.ToString();
             Instance.StartingRep = startingRep.ToString();
+            Instance.CompletedContracts = completedContracts.ToString();
             TrimEndingCommas();
 
             Instance.Initialized = true;
@@ -80,6 +84,7 @@ namespace CustomScenarioManager
             Instance.KCTLaunchpads = Instance.KCTLaunchpads.TrimEnd(',', ' ');
             Instance.TFStartingDU = Instance.TFStartingDU.TrimEnd(',', ' ');
             Instance.RFUnlockedConfigs = Instance.RFUnlockedConfigs.TrimEnd(',', ' ');
+            Instance.CompletedContracts = Instance.CompletedContracts.TrimEnd(',', ' ');
         }
 
         private static void ResetAppliedScenarioFields()
@@ -94,6 +99,7 @@ namespace CustomScenarioManager
             startingFunds.Clear();
             startingScience.Clear();
             startingRep.Clear();
+            completedContracts.Clear();
         }
     }
 }

@@ -1,4 +1,4 @@
-using KSP.Localization;
+﻿using KSP.Localization;
 using System;
 using UnityEngine;
 
@@ -19,6 +19,7 @@ namespace CustomScenarioManager
         public static bool kctRemoveDefaultPads;
         public static string tfStartingDU;
         public static string rfUnlockedConfigs;
+        public static string completedContracts;
 
         public const int textInputWidth = 200;
 
@@ -51,6 +52,10 @@ namespace CustomScenarioManager
                 facilityUpgrades = GUILayout.TextField(facilityUpgrades, HighLogic.Skin.textField);
                 GUILayout.EndHorizontal();
 
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Complete contracts: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
+                completedContracts = GUILayout.TextField(completedContracts, HighLogic.Skin.textField);
+                GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Starting Funds: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
@@ -127,6 +132,7 @@ namespace CustomScenarioManager
             facilityUpgrades = scn.FacilityUpgrades;
             rfUnlockedConfigs = scn.RFUnlockedConfigs;
             tfStartingDU = scn.TFStartingDU;
+            completedContracts = scn.CompletedContracts;
             startingFunds = scn.StartingFunds.ToString();
             startingScience = scn.StartingScience.ToString();
             startingRep = scn.StartingRep.ToString();

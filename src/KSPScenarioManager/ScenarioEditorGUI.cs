@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace CustomScenarioManager
 {
-    public static class ScenarioManagerSettings
+    public static class ScenarioEditorGUI
     {
         public static string activeScenario;
         public static string startingDate;
@@ -29,6 +29,7 @@ namespace CustomScenarioManager
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Starting Date: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
                 startingDate = GUILayout.TextField(startingDate, HighLogic.Skin.textField);
+                GUILayout.Label($"= {DateHandler.GetDatePreview(startingDate)}", HighLogic.Skin.label);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();

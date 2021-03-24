@@ -15,11 +15,38 @@ namespace CustomScenarioManager
             return timeFormatter.PrintDateCompact(UT, true);
         }
 
+        public static string GetDatePreview(string dateString)
+        {
+            long newUT = 0;
+
+            if (!long.TryParse(dateString, out newUT))
+            {
+                if (TryParseStockDate(dateString, out newUT)) { }
+                else if (TryParseDate(dateString, out DateTime newEpoch))
+                {
+                    DateTime gameStart = new DateTime(1951, 01, 01, 0, 0, 0);
+
+                    TimeSpan span = newEpoch.Subtract(gameStart);
+                    newUT = TimeSpanToSeconds(span);
+                }
+                else { newUT = Epoch; }
+            }
+
+            if (newUT != 0)
+                return GetFormattedDateString(newUT);
+            else
+                return "Invalid date";
+        }
+
         public static long GetUTFromDate(string dateString)
         {
             if (!long.TryParse(dateString, out long newUT))
             {
-                if (TryParseDate(dateString, out DateTime newEpoch))
+                if (TryParseStockDate(dateString, out newUT))
+                {
+                    Utilities.Log("Stock date format detected");
+                }
+                else if (TryParseDate(dateString, out DateTime newEpoch))
                 {
                     Utilities.Log("RSS date format detected");
 
@@ -28,13 +55,9 @@ namespace CustomScenarioManager
                     TimeSpan span = newEpoch.Subtract(gameStart);
                     newUT = TimeSpanToSeconds(span);
                 }
-                else if (TryParseStockDate(dateString, out newUT))
-                {
-                    Utilities.Log("Stock date format detected");
-                }
                 else
                 {
-                    Utilities.Log("Unsupported date format");
+                    Utilities.LogWrn("Unsupported date format");
                     newUT = Epoch;
                 }
             }
@@ -61,16 +84,22 @@ namespace CustomScenarioManager
 
         public static bool TryParseDate(string dateString, out DateTime dateTime)
         {
-            return DateTime.TryParse(dateString,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
-                out dateTime);
+            try
+            {
+                dateTime = DateTime.Parse(dateString);
+                return true;
+            }
+            catch
+            {
+                dateTime = DateTime.MinValue;
+                return false;
+            }
         }
 
         public static bool TryParseStockDate(string dateString, out long newUT)
         {
             newUT = Epoch;
-            var pattern = new Regex(@"^\d{4}\-\d+$");
+            var pattern = new Regex(@"^[Y]?\d{4}\-[dD]?\d+$");
             Match m = pattern.Match(dateString);
 
             if (m.Success)

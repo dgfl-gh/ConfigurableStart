@@ -1,7 +1,9 @@
+﻿using ContractConfigurator;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using Upgradeables;
 
@@ -20,6 +22,7 @@ namespace CustomScenarioManager
         private bool? kctRemoveDefaultPads = null;
         private string tfStartingDU = null;
         private string rfUnlockedConfigs = null;
+        private string completedContracts = null;
         private float? startingFunds = null;
         private float? startingScience = null;
         private float? startingRep = null;
@@ -43,11 +46,15 @@ namespace CustomScenarioManager
         }
         public string TFStartingDU { get => tfStartingDU; set => tfStartingDU = value; }
         public string RFUnlockedConfigs { get => rfUnlockedConfigs; set => rfUnlockedConfigs = value; }
+        public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
         public float? StartingFunds { get => startingFunds; set => startingFunds = value; }
         public float? StartingScience { get => startingScience; set => startingScience = value; }
         public float? StartingRep { get => startingRep; set => startingRep = value; }
 
         public long StartingUT => string.IsNullOrEmpty(startingDate) ? 0 : DateHandler.GetUTFromDate(startingDate);
+
+        // cache the contract nodes
+        private static readonly Dictionary<string, ConfigNode> contractNodes = new Dictionary<string, ConfigNode>();
 
         public static Scenario Create(ConfigNode node, GameObject gameObject = null)
         {
@@ -66,6 +73,7 @@ namespace CustomScenarioManager
             node.CSMTryGetValue("kctLaunchpads", out x.kctLaunchpads);
             node.CSMTryGetValue("tfStartingDU", out x.tfStartingDU);
             node.CSMTryGetValue("rfUnlockedConfigs", out x.rfUnlockedConfigs);
+            node.CSMTryGetValue("completedContracts", out x.completedContracts);
             node.CSMTryGetValue("startingRep", out x.startingRep);
             node.CSMTryGetValue("startingScience", out x.startingScience);
             node.CSMTryGetValue("startingFunds", out x.startingFunds);
@@ -83,18 +91,18 @@ namespace CustomScenarioManager
 
         public void UpdateFromSettings()
         {
-            startingDate = ScenarioManagerSettings.startingDate;
-            unlockedTechs = ScenarioManagerSettings.unlockedTechs;
-            unlockPartsInParentNodes = ScenarioManagerSettings.unlockPartsInParentNodes;
-            unlockPartsFields = ScenarioManagerSettings.unlockPartsFields;
-            facilityUpgrades = ScenarioManagerSettings.facilityUpgrades;
-            kctLaunchpads = ScenarioManagerSettings.kctLaunchpads;
-            kctRemoveDefaultPads = ScenarioManagerSettings.kctRemoveDefaultPads;
-            tfStartingDU = ScenarioManagerSettings.tfStartingDU;
-            rfUnlockedConfigs = ScenarioManagerSettings.rfUnlockedConfigs;
-            ScenarioManagerSettings.startingFunds.CSMTryParse(out startingFunds);
-            ScenarioManagerSettings.startingScience.CSMTryParse(out startingScience);
-            ScenarioManagerSettings.startingRep.CSMTryParse(out startingRep);
+            startingDate = ScenarioEditorGUI.startingDate;
+            unlockedTechs = ScenarioEditorGUI.unlockedTechs;
+            unlockPartsInParentNodes = ScenarioEditorGUI.unlockPartsInParentNodes;
+            unlockPartsFields = ScenarioEditorGUI.unlockPartsFields;
+            facilityUpgrades = ScenarioEditorGUI.facilityUpgrades;
+            kctLaunchpads = ScenarioEditorGUI.kctLaunchpads;
+            kctRemoveDefaultPads = ScenarioEditorGUI.kctRemoveDefaultPads;
+            tfStartingDU = ScenarioEditorGUI.tfStartingDU;
+            rfUnlockedConfigs = ScenarioEditorGUI.rfUnlockedConfigs;
+            ScenarioEditorGUI.startingFunds.CSMTryParse(out startingFunds);
+            ScenarioEditorGUI.startingScience.CSMTryParse(out startingScience);
+            ScenarioEditorGUI.startingRep.CSMTryParse(out startingRep);
         }
 
         public void SetParameters()
@@ -112,11 +120,19 @@ namespace CustomScenarioManager
             yield return WaitForInitialization(() => Reputation.Instance);
             yield return WaitForInitialization(() => Funding.Instance);
             yield return WaitForInitialization(() => PartLoader.Instance);
+            yield return WaitForInitialization(() => Contracts.ContractSystem.Instance);
             if (RP0.Found) yield return WaitForInitialization(() => RP0.Instance);
             if (TestFlight.Found) yield return WaitForInitialization(() => TestFlight.Instance);
 
             // just to be even safer
             yield return new WaitForEndOfFrame();
+
+            // complete contracts
+            if (!string.IsNullOrEmpty(completedContracts))
+            {
+                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(completedContracts);
+                CompleteContracts(contractNames);
+            }
 
             // set date
             if (!string.IsNullOrEmpty(startingDate))
@@ -409,6 +425,134 @@ namespace CustomScenarioManager
             }
 
             return parts;
+        }
+
+        /// <summary>
+        /// Generates and completes an array of ContractConfigurator contracts
+        /// </summary>
+        /// <param name="names"> Array of contract names that will be completed.</param>
+        public void CompleteContracts(string[] names)
+        {
+            List<ContractType> contractTypes = ContractType.AllValidContractTypes.ToList();
+
+            foreach (var subType in contractTypes)
+            {
+                foreach (string contractName in names)
+                {
+                    if (contractName == subType.name)
+                    {
+                        var contract = ForceGenerate(subType, 0, new System.Random().Next(), Contracts.Contract.State.Active);
+
+                        if (contract is null)
+                        {
+                            Utilities.LogWrn($"Couldn't complete contract {contractName}");
+                            continue;
+                        }
+
+                        StartCoroutine(CompleteContractCoroutine(contract));
+                    }
+                }
+            }
+        }
+
+        private static ConfiguredContract ForceGenerate(ContractType contractType, Contracts.Contract.ContractPrestige difficulty, int seed, Contracts.Contract.State state)
+        {
+            var contract = (ConfiguredContract)Activator.CreateInstance(typeof(ConfiguredContract));
+
+            Type baseT = contract.GetType().BaseType;
+            FieldInfo[] fields = baseT.GetFields(BindingFlags.FlattenHierarchy
+                | BindingFlags.Instance
+                | BindingFlags.NonPublic
+                | BindingFlags.Public);
+
+            // generate and set guid
+            foreach (var f in fields)
+            {
+                if (f.FieldType == typeof(Guid))
+                {
+                    f.SetValue(contract, Guid.NewGuid());
+                    break;
+                }
+            }
+            // set necessary base contract fields
+            if (baseT.GetField("prestige", BindingFlags.NonPublic | BindingFlags.Instance) is FieldInfo fi)
+                fi.SetValue(contract, difficulty);
+            if ((fi = baseT.GetField("state", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, state);
+            if ((fi = baseT.GetField("agent", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, Contracts.Agents.AgentList.Instance.GetSuitableAgentForContract(contract));
+            contract.FundsFailure = Math.Max(contract.FundsFailure, contract.FundsAdvance);
+            contract.GetType().GetMethod("SetupID", BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(contract, null);
+
+            // set CC contract subtype
+            contract.contractType = contractType;
+            contract.subType = contractType.name;
+
+            // Copy text from contract type
+            Type t = contract.GetType();
+            if ((fi = t.GetField("title", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, contractType.title);
+            if ((fi = t.GetField("synopsis", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, contractType.synopsis);
+            if ((fi = t.GetField("completedMessage", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, contractType.completedMessage);
+            if ((fi = t.GetField("notes", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, contractType.notes);
+
+            return contract;
+        }
+
+        private IEnumerator CompleteContractCoroutine(ConfiguredContract c)
+        {
+            // cache contract nodes
+            if(contractNodes.Count == 0)
+            {
+                var cfgNodes = GameDatabase.Instance.GetConfigNodes("CONTRACT_TYPE");
+
+                foreach (var node in cfgNodes)
+                {
+                    if(node.GetValue("name") is string subT)
+                        contractNodes.Add(subT, node);
+                }
+            }
+
+            // load behaviours so that they're correctly fired
+            if(contractNodes.ContainsKey(c.subType))
+            {
+                var cfgNode = contractNodes[c.subType];
+
+                if(cfgNode.GetNodes("BEHAVIOUR") is var bNodes)
+                {
+                    var behaviourFactories = new List<BehaviourFactory>();
+
+                    foreach (var bNode in bNodes)
+                    {
+                        BehaviourFactory behaviourFactory;
+                        BehaviourFactory.GenerateBehaviourFactory(bNode, c.contractType, out behaviourFactory);
+                        if (behaviourFactory != null)
+                        {
+                            behaviourFactories.Add(behaviourFactory);
+                        }
+                    }
+
+                    if(BehaviourFactory.GenerateBehaviours(c, behaviourFactories))
+                        Utilities.Log($"Generated Behaviours for contract {c.subType}");
+                }
+            }
+
+            // now, complete the contract step by step
+            yield return new WaitForFixedUpdate();
+            if(c.Offer())
+                yield return new WaitForFixedUpdate();
+            
+            if(c.Accept())
+                yield return new WaitForFixedUpdate();
+
+            c.Complete();
+            yield return new WaitForFixedUpdate();
+
+            Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
+            Utilities.Log($"Completed contract {c.subType}");
         }
     }
 }

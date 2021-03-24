@@ -55,7 +55,8 @@ namespace CustomScenarioManager
             }
             catch (Exception ex)
             {
-                Debug.LogError(ex);
+                Utilities.LogErr(ex);
+                Utilities.LogErr("Couldn't update last RP0 maintenance");
             }
         }
     }

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using UnityEngine;
 
 namespace CustomScenarioManager
 {
@@ -39,7 +37,7 @@ namespace CustomScenarioManager
             }
             catch (NotSupportedException)
             {
-                Utilities.Log($"Cannot parse {typeof(T)} from {input}");
+                Utilities.LogErr($"Cannot parse {typeof(T)} from {input}");
                 return false;
             }
         }
@@ -47,11 +45,20 @@ namespace CustomScenarioManager
 
     public class Utilities
     {
-        public static void Log(string s)
+        [Conditional("DEBUG")]
+        public static void Log(object s)
         {
-#if DEBUG
-            Debug.Log($"[CustomScenarioManager] {s}");
-#endif
+            UnityEngine.Debug.Log("[CustomScenarioManager] " + s);
+        }
+
+        public static void LogErr(object s)
+        {
+            UnityEngine.Debug.LogError($"[CustomScenarioManager] " + s);
+        }
+
+        public static void LogWrn(object s)
+        {
+            UnityEngine.Debug.LogWarning($"[CustomScenarioManager] " + s);
         }
 
         public static Dictionary<string, T> DictionaryFromString<T>(string input, char[] separator = null, T defaultValue = default)

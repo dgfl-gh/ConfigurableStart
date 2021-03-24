@@ -45,7 +45,7 @@ namespace CustomScenarioManager
             }
             else
             {
-                Utilities.Log("Couldn't unlock RF engine configs");
+                Utilities.LogErr("Couldn't unlock RF engine configs");
             }
         }
     }

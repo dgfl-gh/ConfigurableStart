@@ -56,7 +56,7 @@ namespace CustomScenarioManager
             }
             else
             {
-                Utilities.Log("Couldn't find CreateNewPad method. Have you updated KCT?");
+                Utilities.LogErr("Couldn't find CreateNewPad method. Have you updated KCT?");
             }
         }
     }

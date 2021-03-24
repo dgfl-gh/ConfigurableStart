@@ -64,8 +64,8 @@ namespace CustomScenarioManager
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError(ex);
-                        Utilities.Log("Couldn't set TF flight data");
+                        Utilities.LogErr(ex);
+                        Utilities.LogErr("Couldn't set TF flight data");
                         break;
                     }
                 }

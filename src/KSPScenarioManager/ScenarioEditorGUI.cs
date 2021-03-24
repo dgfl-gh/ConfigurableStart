@@ -72,7 +72,7 @@ namespace CustomScenarioManager
                 startingRep = GUILayout.TextField(startingRep, HighLogic.Skin.textField);
                 GUILayout.EndHorizontal();
 
-                if(KCT.Found)
+                if (KCT.Found)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("KCT Launchpads: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
@@ -80,11 +80,11 @@ namespace CustomScenarioManager
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad " , HighLogic.Skin.toggle);
+                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad ", HighLogic.Skin.toggle);
                     GUILayout.EndHorizontal();
                 }
 
-                if(RealFuels.Found)
+                if (RealFuels.Found)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("Unlocked engine configs: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
@@ -92,7 +92,7 @@ namespace CustomScenarioManager
                     GUILayout.EndHorizontal();
                 }
 
-                if(TestFlight.Found)
+                if (TestFlight.Found)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("TestFlight DU: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));

@@ -16,14 +16,14 @@ namespace CustomScenarioManager
             get
             {
                 Scenario scn = null;
-                LoadedScenarios?.TryGetValue(curScenarioName, out scn);
+                LoadedScenarios?.TryGetValue(CurScenarioName, out scn);
                 return scn;
             }
         }
 
         private static string[] loadedScenarioNames;
         private static int selectedScenarioIndex = 0;
-        private static string curScenarioName
+        private static string CurScenarioName
         {
             get => loadedScenarioNames?[selectedScenarioIndex];
             set => selectedScenarioIndex = loadedScenarioNames.IndexOf(value);
@@ -74,7 +74,7 @@ namespace CustomScenarioManager
             ShowEditUI(false);
 
             SetActiveScenario(ScenarioEditorGUI.activeScenario);
-            
+
             Debug.Log("[CustomScenarioManager] Destroying...");
             Destroy(this);
         }
@@ -113,7 +113,7 @@ namespace CustomScenarioManager
             if (LoadedScenarios.ContainsKey(scenarioName))
             {
                 LoadedScenarios[scenarioName].SetParameters();
-                curScenarioName = scenarioName;
+                CurScenarioName = scenarioName;
             }
             else
                 Utilities.LogWrn($"Couldn't find a scenario named \"{scenarioName}\"");

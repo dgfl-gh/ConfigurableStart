@@ -1,4 +1,4 @@
-using ContractConfigurator;
+﻿using ContractConfigurator;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -147,9 +147,9 @@ namespace CustomScenarioManager
             if (!string.IsNullOrEmpty(unlockedTechs))
             {
                 Dictionary<string, bool> techIDs = Utilities.DictionaryFromString(unlockedTechs, defaultValue: true);
-                
+
                 Dictionary<string, string> unlockFilters;
-                unlockFilters = string.IsNullOrEmpty(partUnlockFilters) ? 
+                unlockFilters = string.IsNullOrEmpty(partUnlockFilters) ?
                     null : Utilities.DictionaryFromString<string>(partUnlockFilters, defaultValue: null);
 
                 UnlockTechnologies(techIDs, unlockFilters, unlockPartUpgrades);
@@ -251,7 +251,7 @@ namespace CustomScenarioManager
         }
 
         /// <summary>
-        /// Set the amout of Reputation the player has
+        /// Set the amount of Reputation the player has
         /// </summary>
         /// <param name="rep">How much reputation the player should have</param>
         public void SetReputation(float rep)
@@ -392,12 +392,12 @@ namespace CustomScenarioManager
 
             //ptn.partsPurchased.ForEach(p => CustomScenarioData.unlockedParts.Append(p.title + ","));
 
-            if(unlockPartUpgrades.HasValue ? unlockPartUpgrades.Value : unlockParts)
+            if (unlockPartUpgrades ?? unlockParts)
             {
                 var upgrades = PartUpgradeManager.Handler.GetUpgradesForTech(techID);
-                foreach(var upgrd in upgrades)
+                foreach (var up in upgrades)
                 {
-                    PartUpgradeManager.Handler.SetUnlocked(upgrd.name, true);
+                    PartUpgradeManager.Handler.SetUnlocked(up.name, true);
                 }
             }
         }
@@ -406,7 +406,7 @@ namespace CustomScenarioManager
         /// Unlock the parts contained in a tech node, blacklisting or whitelisting them based on input arguments.
         /// </summary>
         /// <param name="techID"> The techID of the node containing the parts.</param>
-        /// <param name="defaultUnlockParts"> Wheter the default behaviour is to buy or not buy parts.</param>
+        /// <param name="defaultUnlockParts"> Whether the default behaviour is to buy or not buy parts.</param>
         /// <param name="unlockFilters"> The dictionary&lt;string, string&gt; of field,value kvp that either selects the parts to buy or to not buy,
         /// depending on default behaviour.</param>
         /// <returns></returns>
@@ -472,6 +472,8 @@ namespace CustomScenarioManager
                         }
 
                         StartCoroutine(CompleteContractCoroutine(contract));
+                        CustomScenarioData.completedContracts.Append(contractName);
+                        Utilities.Log($"Completed contract {contractName}");
                     }
                 }
             }
@@ -501,6 +503,8 @@ namespace CustomScenarioManager
                 fi.SetValue(contract, difficulty);
             if ((fi = baseT.GetField("state", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
                 fi.SetValue(contract, state);
+            if ((fi = baseT.GetField("seed", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, seed);
             if ((fi = baseT.GetField("agent", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
                 fi.SetValue(contract, Contracts.Agents.AgentList.Instance.GetSuitableAgentForContract(contract));
             contract.FundsFailure = Math.Max(contract.FundsFailure, contract.FundsAdvance);
@@ -527,55 +531,51 @@ namespace CustomScenarioManager
         private IEnumerator CompleteContractCoroutine(ConfiguredContract c)
         {
             // cache contract nodes
-            if(contractNodes.Count == 0)
+            if (contractNodes.Count == 0)
             {
                 var cfgNodes = GameDatabase.Instance.GetConfigNodes("CONTRACT_TYPE");
 
                 foreach (var node in cfgNodes)
                 {
-                    if(node.GetValue("name") is string subT)
+                    if (node.GetValue("name") is string subT)
                         contractNodes.Add(subT, node);
                 }
             }
 
             // load behaviours so that they're correctly fired
-            if(contractNodes.ContainsKey(c.subType))
+            if (contractNodes.ContainsKey(c.subType))
             {
                 var cfgNode = contractNodes[c.subType];
 
-                if(cfgNode.GetNodes("BEHAVIOUR") is var bNodes)
+                if (cfgNode.GetNodes("BEHAVIOUR") is var bNodes)
                 {
                     var behaviourFactories = new List<BehaviourFactory>();
 
                     foreach (var bNode in bNodes)
                     {
-                        BehaviourFactory behaviourFactory;
-                        BehaviourFactory.GenerateBehaviourFactory(bNode, c.contractType, out behaviourFactory);
+                        BehaviourFactory.GenerateBehaviourFactory(bNode, c.contractType, out var behaviourFactory);
                         if (behaviourFactory != null)
                         {
                             behaviourFactories.Add(behaviourFactory);
                         }
                     }
 
-                    if(BehaviourFactory.GenerateBehaviours(c, behaviourFactories))
+                    if (BehaviourFactory.GenerateBehaviours(c, behaviourFactories))
                         Utilities.Log($"Generated Behaviours for contract {c.subType}");
                 }
             }
 
             // now, complete the contract step by step
-            yield return new WaitForFixedUpdate();
-            if(c.Offer())
+            if (c.Offer())
                 yield return new WaitForFixedUpdate();
-            
-            if(c.Accept())
+
+            if (c.Accept())
                 yield return new WaitForFixedUpdate();
 
             c.Complete();
             yield return new WaitForFixedUpdate();
 
             Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
-            CustomScenarioData.completedContracts.Append(c.subType);
-            Utilities.Log($"Completed contract {c.subType}");
         }
     }
 }

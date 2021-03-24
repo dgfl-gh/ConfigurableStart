@@ -17,9 +17,7 @@ namespace CustomScenarioManager
 
         public static string GetDatePreview(string dateString)
         {
-            long newUT = 0;
-
-            if (!long.TryParse(dateString, out newUT))
+            if (!long.TryParse(dateString, out long newUT))
             {
                 if (TryParseStockDate(dateString, out newUT)) { }
                 else if (TryParseDate(dateString, out DateTime newEpoch))

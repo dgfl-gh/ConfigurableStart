@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace CustomScenarioManager
@@ -30,6 +29,7 @@ namespace CustomScenarioManager
             set => selectedScenarioIndex = loadedScenarioNames.IndexOf(value);
         }
 
+        //TODO: find a better starting position
         private static Rect selectionWindowRect = new Rect(267, 104, 400, 200);
         private static Rect editWindowRect = new Rect(Screen.width - 800, 104, 500, 100);
         private static bool shouldResetUIHeight = false;
@@ -64,7 +64,7 @@ namespace CustomScenarioManager
             }
             else
             {
-                Utilities.Log("Couldn't find MainMenu");
+                Utilities.LogErr("Couldn't find MainMenu");
             }
         }
 
@@ -73,7 +73,9 @@ namespace CustomScenarioManager
             ShowSelectionUI(false);
             ShowEditUI(false);
 
-            SetActiveScenario(ScenarioManagerSettings.activeScenario);
+            SetActiveScenario(ScenarioEditorGUI.activeScenario);
+            
+            Debug.Log("[CustomScenarioManager] Destroying...");
             Destroy(this);
         }
 
@@ -105,7 +107,7 @@ namespace CustomScenarioManager
 
         public void SetActiveScenario(string scenarioName)
         {
-            if (LoadedScenarios == null || scenarioName == null ||  scenarioName == "None")
+            if (LoadedScenarios == null || scenarioName == null || scenarioName == "None")
                 return;
 
             if (LoadedScenarios.ContainsKey(scenarioName))
@@ -114,7 +116,7 @@ namespace CustomScenarioManager
                 curScenarioName = scenarioName;
             }
             else
-                Utilities.Log($"Couldn't find a scenario named \"{scenarioName}\"");
+                Utilities.LogWrn($"Couldn't find a scenario named \"{scenarioName}\"");
         }
 
         public void OnGUI()
@@ -129,9 +131,9 @@ namespace CustomScenarioManager
 
                 selectionWindowRect = GUILayout.Window(GetInstanceID(), selectionWindowRect, SelectionWindow, "Scenario Selector", HighLogic.Skin.window);
             }
-            if(initialized && showEditUI && CurrentScenario != null)
+            if (initialized && showEditUI && CurrentScenario != null)
             {
-                editWindowRect = GUILayout.Window(GetInstanceID() + 1, editWindowRect, ScenarioManagerSettings.EditWindow, "Edit starting parameters", HighLogic.Skin.window);
+                editWindowRect = GUILayout.Window(GetInstanceID() + 1, editWindowRect, ScenarioEditorGUI.EditWindow, "Edit starting parameters", HighLogic.Skin.window);
             }
         }
 
@@ -147,7 +149,7 @@ namespace CustomScenarioManager
                     {
                         shouldResetUIHeight = true;
                         Utilities.Log("Selected Scenario changed, updating values");
-                        ScenarioManagerSettings.UpdateFromScenario(CurrentScenario);
+                        ScenarioEditorGUI.UpdateFromScenario(CurrentScenario);
                     }
                 }
                 GUILayout.BeginHorizontal();
@@ -159,7 +161,7 @@ namespace CustomScenarioManager
             GUILayout.Space(7);
 
             GUILayout.BeginVertical();
-            if(CurrentScenario != null)
+            if (CurrentScenario != null)
             {
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Edit", HighLogic.Skin.button))

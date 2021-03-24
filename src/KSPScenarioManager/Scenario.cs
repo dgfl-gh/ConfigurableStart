@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -324,7 +324,7 @@ namespace CustomScenarioManager
                 UnlockTechWithParents(rdNode, researchedNodes, unlockParts, isRecursive, partUnlockFields);
             }
             else
-                Utilities.Log($"{techID} node not found");
+                Utilities.LogWrn($"{techID} node not found");
         }
 
         /// <summary>

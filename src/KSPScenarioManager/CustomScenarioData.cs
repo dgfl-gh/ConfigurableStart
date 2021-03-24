@@ -9,7 +9,7 @@ namespace CustomScenarioManager
         public static Scenario CurrentScenario => ScenarioLoader.CurrentScenario;
         public static StringBuilder startingDate = new StringBuilder("");
         public static StringBuilder unlockedTechs = new StringBuilder("");
-        public static StringBuilder unlockedParts = new StringBuilder("");
+        //public static StringBuilder unlockedParts = new StringBuilder("");
         public static StringBuilder facilitiesUpgraded = new StringBuilder("");
         public static StringBuilder startingFunds = new StringBuilder("");
         public static StringBuilder startingScience = new StringBuilder("");
@@ -59,7 +59,7 @@ namespace CustomScenarioManager
             Instance.CurrentScenarioName = CurrentScenario.ScenarioName;
             Instance.StartingDate = startingDate.ToString();
             Instance.UnlockedTechs = unlockedTechs.ToString();
-            Instance.UnlockedParts = unlockedParts.ToString();
+            //Instance.UnlockedParts = unlockedParts.ToString();
             Instance.FacilityUpgrades = facilitiesUpgraded.ToString();
             Instance.KCTLaunchpads = kctLaunchpads.ToString();
             Instance.TFStartingDU = tfStartingDU.ToString();
@@ -79,7 +79,7 @@ namespace CustomScenarioManager
         private static void TrimEndingCommas()
         {
             Instance.UnlockedTechs = Instance.UnlockedTechs.TrimEnd(',', ' ');
-            Instance.UnlockedParts = Instance.UnlockedParts.TrimEnd(',', ' ');
+            //Instance.UnlockedParts = Instance.UnlockedParts.TrimEnd(',', ' ');
             Instance.FacilityUpgrades = Instance.FacilityUpgrades.TrimEnd(',', ' ');
             Instance.KCTLaunchpads = Instance.KCTLaunchpads.TrimEnd(',', ' ');
             Instance.TFStartingDU = Instance.TFStartingDU.TrimEnd(',', ' ');
@@ -91,7 +91,7 @@ namespace CustomScenarioManager
         {
             startingDate.Clear();
             unlockedTechs.Clear();
-            unlockedParts.Clear();
+            //unlockedParts.Clear();
             facilitiesUpgraded.Clear();
             kctLaunchpads.Clear();
             tfStartingDU.Clear();

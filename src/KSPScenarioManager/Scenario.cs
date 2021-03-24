@@ -1,4 +1,4 @@
-﻿using ContractConfigurator;
+using ContractConfigurator;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -390,7 +390,7 @@ namespace CustomScenarioManager
             CustomScenarioData.unlockedTechs.Append(techID + ",");
             Utilities.Log($"Unlocked tech: {techID}");
 
-            ptn.partsPurchased.ForEach(p => CustomScenarioData.unlockedParts.Append(p + ","));
+            //ptn.partsPurchased.ForEach(p => CustomScenarioData.unlockedParts.Append(p.title + ","));
 
             if(unlockPartUpgrades.HasValue ? unlockPartUpgrades.Value : unlockParts)
             {

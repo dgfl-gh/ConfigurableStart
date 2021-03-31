@@ -1,102 +1,121 @@
-﻿using KSP.Localization;
-using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace CustomScenarioManager
 {
-    public static class ScenarioEditorGUI
+    [KSPAddon(KSPAddon.Startup.MainMenu, false)]
+    public class ScenarioEditorGUI : MonoBehaviour
     {
-        public static string activeScenario;
-        public static string startingDate;
-        public static string unlockedTechs;
-        public static bool unlockPartsInParentNodes;
-        public static string partUnlockFilters;
-        public static string facilityUpgrades;
-        public static string startingFunds;
-        public static string startingScience;
-        public static string startingRep;
-        public static string kctLaunchpads;
-        public static bool kctRemoveDefaultPads;
-        public static string tfStartingDU;
-        public static string rfUnlockedConfigs;
-        public static string completedContracts;
+        public static ScenarioEditorGUI Instance = null;
 
-        public const int textInputWidth = 200;
+        public string activeScenario;
+        public string startingDate;
+        public string unlockedTechs;
+        public bool unlockPartsInParentNodes;
+        public string partUnlockFilters;
+        public string facilityUpgrades;
+        public string startingFunds;
+        public string startingScience;
+        public string startingRep;
+        public string kctLaunchpads;
+        public bool kctRemoveDefaultPads;
+        public string tfStartingDU;
+        public string rfUnlockedConfigs;
+        public string completedContracts;
 
-        public static void EditWindow(int windowID)
+        public int labelWidth = (int)(200 * GameSettings.UI_SCALE);
+        public int textAreaWidth = (int)(400 * GameSettings.UI_SCALE);
+
+        private readonly static GUIStyle textFieldStyle = new GUIStyle(HighLogic.Skin.textField);
+
+        public void Awake()
+        {
+            if (Instance != null)
+            {
+                Destroy(this);
+                return;
+            }
+
+            Instance = this;
+            textFieldStyle.wordWrap = true;
+        }
+
+        public void EditWindow(int windowID)
         {
             GUILayout.BeginVertical(HighLogic.Skin.box);
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Starting Date: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                startingDate = GUILayout.TextField(startingDate, HighLogic.Skin.textField);
+                GUILayout.Label("Starting Date: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                startingDate = GUILayout.TextArea(startingDate, textFieldStyle);
                 GUILayout.Label($"= {DateHandler.GetDatePreview(startingDate)}", HighLogic.Skin.label);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Unlocked Techs: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                unlockedTechs = GUILayout.TextField(unlockedTechs, HighLogic.Skin.textField);
+                GUILayout.Label("Unlocked Techs: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                unlockedTechs = GUILayout.TextArea(unlockedTechs, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                unlockPartsInParentNodes = GUILayout.Toggle(unlockPartsInParentNodes, "Unlock parts in parent nodes ", HighLogic.Skin.toggle);
+                GUILayout.Label("Part unlock filters: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                partUnlockFilters = GUILayout.TextArea(partUnlockFilters, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Part unlock filters: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                partUnlockFilters = GUILayout.TextField(partUnlockFilters, HighLogic.Skin.textField);
+                GUILayout.Label("Facility Levels: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                facilityUpgrades = GUILayout.TextArea(facilityUpgrades, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Facility Levels: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                facilityUpgrades = GUILayout.TextField(facilityUpgrades, HighLogic.Skin.textField);
+                GUILayout.Label("Complete contracts: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                completedContracts = GUILayout.TextArea(completedContracts, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Complete contracts: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                completedContracts = GUILayout.TextField(completedContracts, HighLogic.Skin.textField);
+                GUILayout.Label("Starting Funds: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                startingFunds = GUILayout.TextArea(startingFunds, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Starting Funds: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                startingFunds = GUILayout.TextField(startingFunds, HighLogic.Skin.textField);
+                GUILayout.Label("Starting Science: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                startingScience = GUILayout.TextArea(startingScience, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Starting Science: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                startingScience = GUILayout.TextField(startingScience, HighLogic.Skin.textField);
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Starting Reputation: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                startingRep = GUILayout.TextField(startingRep, HighLogic.Skin.textField);
+                GUILayout.Label("Starting Reputation: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                startingRep = GUILayout.TextArea(startingRep, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
 
                 if (KCT.Found)
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("KCT Launchpads: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                    kctLaunchpads = GUILayout.TextField(kctLaunchpads, HighLogic.Skin.textField);
-                    GUILayout.EndHorizontal();
-
-                    GUILayout.BeginHorizontal();
-                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad ", HighLogic.Skin.toggle);
+                    GUILayout.Label("KCT Launchpads: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                    kctLaunchpads = GUILayout.TextArea(kctLaunchpads, textAreaWidth, textFieldStyle);
                     GUILayout.EndHorizontal();
                 }
 
                 if (RealFuels.Found)
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("Unlocked engine configs: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                    rfUnlockedConfigs = GUILayout.TextField(rfUnlockedConfigs, HighLogic.Skin.textField);
+                    GUILayout.Label("Unlocked engine configs: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                    rfUnlockedConfigs = GUILayout.TextArea(rfUnlockedConfigs, textAreaWidth, textFieldStyle);
                     GUILayout.EndHorizontal();
                 }
 
                 if (TestFlight.Found)
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("TestFlight DU: ", HighLogic.Skin.label, GUILayout.Width(textInputWidth));
-                    tfStartingDU = GUILayout.TextField(tfStartingDU, HighLogic.Skin.textField);
+                    GUILayout.Label("TestFlight DU: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                    tfStartingDU = GUILayout.TextArea(tfStartingDU, textAreaWidth, textFieldStyle);
+                    GUILayout.EndHorizontal();
+                }
+
+                GUILayout.BeginHorizontal();
+                unlockPartsInParentNodes = GUILayout.Toggle(unlockPartsInParentNodes, "Unlock parts in parent nodes ", HighLogic.Skin.toggle);
+                GUILayout.EndHorizontal();
+
+                if (KCT.Found)
+                {
+                    GUILayout.BeginHorizontal();
+                    kctRemoveDefaultPads = GUILayout.Toggle(kctRemoveDefaultPads, "Remove default pad ", HighLogic.Skin.toggle);
                     GUILayout.EndHorizontal();
                 }
             }
@@ -120,7 +139,7 @@ namespace CustomScenarioManager
             GUI.DragWindow();
         }
 
-        public static void UpdateFromScenario(Scenario scn)
+        public void UpdateFromScenario(Scenario scn)
         {
             activeScenario = scn.ScenarioName;
             startingDate = scn.StartingDate;

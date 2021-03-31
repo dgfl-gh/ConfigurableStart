@@ -27,8 +27,8 @@ namespace CustomScenarioManager
         public string StartingDate;
         [KSPField(isPersistant = true)]
         public string UnlockedTechs;
-        [KSPField(isPersistant = true)]
-        public string UnlockedParts;
+        //[KSPField(isPersistant = true)]
+        //public string UnlockedParts;
         [KSPField(isPersistant = true)]
         public string FacilityUpgrades;
         [KSPField(isPersistant = true)]
@@ -56,18 +56,31 @@ namespace CustomScenarioManager
         {
             if (Instance == null) return;
 
-            Instance.CurrentScenarioName = CurrentScenario.ScenarioName;
-            Instance.StartingDate = startingDate.ToString();
-            Instance.UnlockedTechs = unlockedTechs.ToString();
-            //Instance.UnlockedParts = unlockedParts.ToString();
-            Instance.FacilityUpgrades = facilitiesUpgraded.ToString();
-            Instance.KCTLaunchpads = kctLaunchpads.ToString();
-            Instance.TFStartingDU = tfStartingDU.ToString();
-            Instance.RFUnlockedConfigs = rfUnlockedConfigs.ToString();
-            Instance.StartingFunds = startingFunds.ToString();
-            Instance.StartingScience = startingScience.ToString();
-            Instance.StartingRep = startingRep.ToString();
-            Instance.CompletedContracts = completedContracts.ToString();
+            Instance.CurrentScenarioName = !string.IsNullOrWhiteSpace(CurrentScenario.ScenarioName) ?
+                CurrentScenario.ScenarioName : "null";
+            Instance.StartingDate = !string.IsNullOrWhiteSpace(startingDate.ToString()) ?
+                startingDate.ToString() : "null";
+            Instance.UnlockedTechs = !string.IsNullOrWhiteSpace(unlockedTechs.ToString()) ?
+                unlockedTechs.ToString() : "null";
+            //Instance.UnlockedParts = !string.IsNullOrWhiteSpace(unlockedParts.ToString();
+            //    unlockedParts.ToString() : "null";
+            Instance.FacilityUpgrades = !string.IsNullOrWhiteSpace(facilitiesUpgraded.ToString()) ?
+                facilitiesUpgraded.ToString() : "null";
+            Instance.KCTLaunchpads = !string.IsNullOrWhiteSpace(kctLaunchpads.ToString()) ?
+                kctLaunchpads.ToString() : "null";
+            Instance.TFStartingDU = !string.IsNullOrWhiteSpace(tfStartingDU.ToString()) ?
+                tfStartingDU.ToString() : "null";
+            Instance.RFUnlockedConfigs = !string.IsNullOrWhiteSpace(rfUnlockedConfigs.ToString()) ?
+                rfUnlockedConfigs.ToString() : "null";
+            Instance.StartingFunds = !string.IsNullOrWhiteSpace(startingFunds.ToString()) ?
+                startingFunds.ToString() : "null";
+            Instance.StartingScience = !string.IsNullOrWhiteSpace(startingScience.ToString()) ?
+                startingScience.ToString() : "null";
+            Instance.StartingRep = !string.IsNullOrWhiteSpace(startingRep.ToString()) ?
+                startingRep.ToString() : "null";
+            Instance.CompletedContracts = !string.IsNullOrWhiteSpace(completedContracts.ToString()) ?
+                completedContracts.ToString() : "null";
+
             TrimEndingCommas();
 
             Instance.Initialized = true;

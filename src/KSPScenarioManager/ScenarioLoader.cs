@@ -31,7 +31,7 @@ namespace CustomScenarioManager
 
         //TODO: find a better starting position
         private static Rect selectionWindowRect = new Rect(267, 104, 400, 200);
-        private static Rect editWindowRect = new Rect(Screen.width - 800, 104, 500, 100);
+        private static Rect editWindowRect = new Rect(Screen.width - 850, 104, 800, 100);
         private static bool shouldResetUIHeight = false;
         private static bool showSelectionUI = false;
         private static bool showEditUI = false;
@@ -73,7 +73,7 @@ namespace CustomScenarioManager
             ShowSelectionUI(false);
             ShowEditUI(false);
 
-            SetActiveScenario(ScenarioEditorGUI.activeScenario);
+            SetActiveScenario(ScenarioEditorGUI.Instance.activeScenario);
 
             Debug.Log("[CustomScenarioManager] Destroying...");
             Destroy(this);
@@ -133,7 +133,7 @@ namespace CustomScenarioManager
             }
             if (initialized && showEditUI && CurrentScenario != null)
             {
-                editWindowRect = GUILayout.Window(GetInstanceID() + 1, editWindowRect, ScenarioEditorGUI.EditWindow, "Edit starting parameters", HighLogic.Skin.window);
+                editWindowRect = GUILayout.Window(GetInstanceID() + 1, editWindowRect, ScenarioEditorGUI.Instance.EditWindow, "Edit starting parameters", HighLogic.Skin.window);
             }
         }
 
@@ -149,7 +149,7 @@ namespace CustomScenarioManager
                     {
                         shouldResetUIHeight = true;
                         Utilities.Log("Selected Scenario changed, updating values");
-                        ScenarioEditorGUI.UpdateFromScenario(CurrentScenario);
+                        ScenarioEditorGUI.Instance.UpdateFromScenario(CurrentScenario);
                     }
                 }
                 GUILayout.BeginHorizontal();

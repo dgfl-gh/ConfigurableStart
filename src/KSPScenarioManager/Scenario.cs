@@ -56,6 +56,9 @@ namespace CustomScenarioManager
 
         // cache the contract nodes
         private static readonly Dictionary<string, ConfigNode> contractNodes = new Dictionary<string, ConfigNode>();
+        public static bool ContractsInitialized => runningContractCoroutines == 0 && contractsIterated;
+        private static uint runningContractCoroutines = 0;
+        private static bool contractsIterated = false;
 
         public static Scenario Create(ConfigNode node, GameObject gameObject = null)
         {
@@ -92,18 +95,18 @@ namespace CustomScenarioManager
 
         public void UpdateFromSettings()
         {
-            startingDate = ScenarioEditorGUI.startingDate;
-            unlockedTechs = ScenarioEditorGUI.unlockedTechs;
-            unlockPartsInParentNodes = ScenarioEditorGUI.unlockPartsInParentNodes;
-            partUnlockFilters = ScenarioEditorGUI.partUnlockFilters;
-            facilityUpgrades = ScenarioEditorGUI.facilityUpgrades;
-            kctLaunchpads = ScenarioEditorGUI.kctLaunchpads;
-            kctRemoveDefaultPads = ScenarioEditorGUI.kctRemoveDefaultPads;
-            tfStartingDU = ScenarioEditorGUI.tfStartingDU;
-            rfUnlockedConfigs = ScenarioEditorGUI.rfUnlockedConfigs;
-            ScenarioEditorGUI.startingFunds.CSMTryParse(out startingFunds);
-            ScenarioEditorGUI.startingScience.CSMTryParse(out startingScience);
-            ScenarioEditorGUI.startingRep.CSMTryParse(out startingRep);
+            startingDate = ScenarioEditorGUI.Instance.startingDate;
+            unlockedTechs = ScenarioEditorGUI.Instance.unlockedTechs;
+            unlockPartsInParentNodes = ScenarioEditorGUI.Instance.unlockPartsInParentNodes;
+            partUnlockFilters = ScenarioEditorGUI.Instance.partUnlockFilters;
+            facilityUpgrades = ScenarioEditorGUI.Instance.facilityUpgrades;
+            kctLaunchpads = ScenarioEditorGUI.Instance.kctLaunchpads;
+            kctRemoveDefaultPads = ScenarioEditorGUI.Instance.kctRemoveDefaultPads;
+            tfStartingDU = ScenarioEditorGUI.Instance.tfStartingDU;
+            rfUnlockedConfigs = ScenarioEditorGUI.Instance.rfUnlockedConfigs;
+            ScenarioEditorGUI.Instance.startingFunds.CSMTryParse(out startingFunds);
+            ScenarioEditorGUI.Instance.startingScience.CSMTryParse(out startingScience);
+            ScenarioEditorGUI.Instance.startingRep.CSMTryParse(out startingRep);
         }
 
         public void SetParameters()
@@ -134,6 +137,7 @@ namespace CustomScenarioManager
                 string[] contractNames = Utilities.ArrayFromCommaSeparatedList(completedContracts);
                 CompleteContracts(contractNames);
             }
+            contractsIterated = true;
 
             // set date
             if (!string.IsNullOrEmpty(startingDate))
@@ -195,9 +199,17 @@ namespace CustomScenarioManager
             if (startingFunds != null)
                 SetFunds(startingFunds.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingFunds));
 
+            StartCoroutine(UpdateScenarioFields());
+            yield break;
+        }
+
+        private IEnumerator UpdateScenarioFields()
+        {
+            while (!ContractsInitialized)
+                yield return new WaitForFixedUpdate();
+
             CustomScenarioData.UpdateAppliedScenarioFields();
             Utilities.Log("Scenario applied");
-            yield break;
         }
 
         /// <summary>
@@ -413,6 +425,7 @@ namespace CustomScenarioManager
         public List<AvailablePart> MatchingParts(string techID, bool defaultUnlockParts, Dictionary<string, string> unlockFilters)
         {
             var parts = new List<AvailablePart>();
+            var apType = typeof(AvailablePart);
             unlockFilters ??= new Dictionary<string, string>(0);
 
             if (defaultUnlockParts)
@@ -424,7 +437,16 @@ namespace CustomScenarioManager
                     string fieldValue = unlockFilters[filterName];
 
                     if (fieldValue != null)
-                        parts.RemoveAll(p => p.GetType().GetField(filterName)?.GetValue(p).ToString() == fieldValue);
+                    {
+                        if(filterName=="tags")
+                            parts.RemoveAll(p => (apType.GetField(filterName)?.GetValue(p)
+                            .ToString()
+                            .Contains(fieldValue.ToLower())) ?? false);
+                        else
+                            parts.RemoveAll(p => (apType.GetField(filterName)?.GetValue(p)
+                            .ToString()
+                            .Contains(fieldValue)) ?? false);
+                    }
                     else
                         parts.RemoveAll(p => p.partConfig.HasNode(filterName));
                 }
@@ -436,9 +458,18 @@ namespace CustomScenarioManager
                     string fieldValue = unlockFilters[filterName];
 
                     if (fieldValue != null)
-                        parts.AddRange(PartLoader.Instance.loadedParts
+                    {
+                        if(filterName == "tags")
+                            parts.AddRange(PartLoader.Instance.loadedParts
                             .Where(p => p.TechRequired == techID)
-                            .Where(p => p.GetType().GetField(filterName)?.GetValue(p).ToString() == fieldValue));
+                            .Where(p => apType.GetField(filterName)?.GetValue(p).ToString()
+                            .Contains(fieldValue.ToLower()) ?? false));
+                        else
+                            parts.AddRange(PartLoader.Instance.loadedParts
+                            .Where(p => p.TechRequired == techID)
+                            .Where(p => apType.GetField(filterName)?.GetValue(p).ToString()
+                            .Contains(fieldValue) ?? false));
+                    }
                     else
                         parts.AddRange(PartLoader.Instance.loadedParts
                             .Where(p => p.TechRequired == techID)
@@ -472,7 +503,7 @@ namespace CustomScenarioManager
                         }
 
                         StartCoroutine(CompleteContractCoroutine(contract));
-                        CustomScenarioData.completedContracts.Append(contractName);
+                        CustomScenarioData.completedContracts.Append(contractName + ",");
                         Utilities.Log($"Completed contract {contractName}");
                     }
                 }
@@ -530,6 +561,7 @@ namespace CustomScenarioManager
 
         private IEnumerator CompleteContractCoroutine(ConfiguredContract c)
         {
+            runningContractCoroutines++;
             // cache contract nodes
             if (contractNodes.Count == 0)
             {
@@ -576,6 +608,7 @@ namespace CustomScenarioManager
             yield return new WaitForFixedUpdate();
 
             Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
+            runningContractCoroutines--;
         }
     }
 }

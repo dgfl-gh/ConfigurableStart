@@ -21,9 +21,12 @@ namespace CustomScenarioManager
         private string facilityUpgrades = null;
         private string kctLaunchpads = null;
         private bool? kctRemoveDefaultPads = null;
+        private string kctUpgrades = null;
+        private int? kctUnspentUpgrades = null;
         private string tfStartingDU = null;
         private string rfUnlockedConfigs = null;
         private string completedContracts = null;
+        private string acceptedContracts = null;
         private float? startingFunds = null;
         private float? startingScience = null;
         private float? startingRep = null;
@@ -45,9 +48,12 @@ namespace CustomScenarioManager
             get => kctRemoveDefaultPads ?? !string.IsNullOrEmpty(kctLaunchpads);
             set => kctRemoveDefaultPads = value;
         }
+        public string KCTUpgrades { get => kctUpgrades; set => kctUpgrades = value; }
+        public int? KCTUnspentUpgrades { get => kctUnspentUpgrades; set => kctUnspentUpgrades = value; }
         public string TFStartingDU { get => tfStartingDU; set => tfStartingDU = value; }
         public string RFUnlockedConfigs { get => rfUnlockedConfigs; set => rfUnlockedConfigs = value; }
         public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
+        public string AcceptedContracts { get => acceptedContracts; set => acceptedContracts = value; }
         public float? StartingFunds { get => startingFunds; set => startingFunds = value; }
         public float? StartingScience { get => startingScience; set => startingScience = value; }
         public float? StartingRep { get => startingRep; set => startingRep = value; }
@@ -76,9 +82,12 @@ namespace CustomScenarioManager
             node.CSMTryGetValue("partUnlockFilters", out x.partUnlockFilters);
             node.CSMTryGetValue("facilities", out x.facilityUpgrades);
             node.CSMTryGetValue("kctLaunchpads", out x.kctLaunchpads);
+            node.CSMTryGetValue("kctUpgrades", out x.kctUpgrades);
+            node.CSMTryGetValue("kctUnspentUpgrades", out x.kctUnspentUpgrades);
             node.CSMTryGetValue("tfStartingDU", out x.tfStartingDU);
             node.CSMTryGetValue("rfUnlockedConfigs", out x.rfUnlockedConfigs);
             node.CSMTryGetValue("completedContracts", out x.completedContracts);
+            node.CSMTryGetValue("acceptedContracts", out x.acceptedContracts);
             node.CSMTryGetValue("startingRep", out x.startingRep);
             node.CSMTryGetValue("startingScience", out x.startingScience);
             node.CSMTryGetValue("startingFunds", out x.startingFunds);
@@ -135,7 +144,13 @@ namespace CustomScenarioManager
             if (!string.IsNullOrEmpty(completedContracts))
             {
                 string[] contractNames = Utilities.ArrayFromCommaSeparatedList(completedContracts);
-                CompleteContracts(contractNames);
+                HandleContracts(contractNames, complete:true);
+            }
+            // accept contracts
+            if (!string.IsNullOrEmpty(acceptedContracts))
+            {
+                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(acceptedContracts);
+                HandleContracts(contractNames, complete: false);
             }
             contractsIterated = true;
 
@@ -150,11 +165,11 @@ namespace CustomScenarioManager
             // unlock technologies
             if (!string.IsNullOrEmpty(unlockedTechs))
             {
-                Dictionary<string, bool> techIDs = Utilities.DictionaryFromString(unlockedTechs, defaultValue: true);
+                Dictionary<string, bool> techIDs = Utilities.DictionaryFromCommaSeparatedString(unlockedTechs, defaultValue: true);
 
                 Dictionary<string, string> unlockFilters;
                 unlockFilters = string.IsNullOrEmpty(partUnlockFilters) ?
-                    null : Utilities.DictionaryFromString<string>(partUnlockFilters, defaultValue: null);
+                    null : Utilities.DictionaryFromCommaSeparatedString<string>(partUnlockFilters, defaultValue: null);
 
                 UnlockTechnologies(techIDs, unlockFilters, unlockPartUpgrades);
             }
@@ -162,15 +177,27 @@ namespace CustomScenarioManager
             // set facility levels
             if (!string.IsNullOrEmpty(facilityUpgrades))
             {
-                Dictionary<string, int> facilities = Utilities.DictionaryFromString<int>(facilityUpgrades);
+                Dictionary<string, int> facilities = Utilities.DictionaryFromCommaSeparatedString<int>(facilityUpgrades);
                 SetFacilityLevels(facilities);
             }
 
             // set KCT launchpads
             if (KCT.Found && !string.IsNullOrEmpty(kctLaunchpads))
             {
-                Dictionary<string, int> pads = Utilities.DictionaryFromString<int>(kctLaunchpads);
+                Dictionary<string, int> pads = Utilities.DictionaryFromCommaSeparatedString<int>(kctLaunchpads);
                 KCT.CreatePads(pads, kctRemoveDefaultPads.GetValueOrDefault(true));
+            }
+
+            //set KCT upgrade points
+            if (KCT.Found && kctUnspentUpgrades != null)
+            {
+                KCT.SetUnspentPoints(kctUnspentUpgrades.GetValueOrDefault(-1));
+                Utilities.Log($"Added {kctUnspentUpgrades} KCT upgrade points");
+            }
+            if(KCT.Found && !string.IsNullOrEmpty(kctUpgrades))
+            {
+                KCT.SetUpgradePoints(kctUpgrades);
+                Utilities.Log("Upgraded KCT sites");
             }
 
             // unlock RF engine configs
@@ -183,7 +210,7 @@ namespace CustomScenarioManager
             // set starting DU for TF
             if (TestFlight.Found && !string.IsNullOrEmpty(tfStartingDU))
             {
-                Dictionary<string, float> engines = Utilities.DictionaryFromString<float>(tfStartingDU);
+                Dictionary<string, float> engines = Utilities.DictionaryFromCommaSeparatedString<float>(tfStartingDU);
                 TestFlight.SetFlightDataForParts(engines);
             }
 
@@ -484,7 +511,7 @@ namespace CustomScenarioManager
         /// Generates and completes an array of ContractConfigurator contracts
         /// </summary>
         /// <param name="names"> Array of contract names that will be completed.</param>
-        public void CompleteContracts(string[] names)
+        public void HandleContracts(string[] names, bool complete)
         {
             List<ContractType> contractTypes = ContractType.AllValidContractTypes.ToList();
 
@@ -502,8 +529,7 @@ namespace CustomScenarioManager
                             continue;
                         }
 
-                        StartCoroutine(CompleteContractCoroutine(contract));
-                        CustomScenarioData.completedContracts.Append(contractName + ",");
+                        StartCoroutine(HandleContractCoroutine(contract, complete));
                         Utilities.Log($"Completed contract {contractName}");
                     }
                 }
@@ -559,7 +585,7 @@ namespace CustomScenarioManager
             return contract;
         }
 
-        private IEnumerator CompleteContractCoroutine(ConfiguredContract c)
+        private IEnumerator HandleContractCoroutine(ConfiguredContract c, bool complete)
         {
             runningContractCoroutines++;
             // cache contract nodes
@@ -604,10 +630,20 @@ namespace CustomScenarioManager
             if (c.Accept())
                 yield return new WaitForFixedUpdate();
 
-            c.Complete();
-            yield return new WaitForFixedUpdate();
+            if (complete)
+            {
+                if (c.Complete())
+                {
+                    CustomScenarioData.completedContracts.Append(c.subType + ",");
+                    yield return new WaitForFixedUpdate();
+                    Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
+                }
+                else
+                    Utilities.LogWrn($"Couldn't complete contract {c.subType}");
+            }
+            else
+                CustomScenarioData.acceptedContracts.Append(c.subType + ",");
 
-            Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
             runningContractCoroutines--;
         }
     }

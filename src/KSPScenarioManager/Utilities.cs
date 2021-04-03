@@ -61,7 +61,7 @@ namespace CustomScenarioManager
             UnityEngine.Debug.LogWarning($"[CustomScenarioManager] " + s);
         }
 
-        public static Dictionary<string, T> DictionaryFromString<T>(string input, char[] separator = null, T defaultValue = default)
+        public static Dictionary<string, T> DictionaryFromCommaSeparatedString<T>(string input, char[] separator = null, T defaultValue = default)
         {
             string[] array = ArrayFromCommaSeparatedList(input);
             return DictionaryFromStringArray(array, separator, defaultValue);
@@ -98,15 +98,27 @@ namespace CustomScenarioManager
 
         public static string[] ArrayFromCommaSeparatedList(string listString)
         {
-            if (string.IsNullOrEmpty(listString)) return new string[] { };
+            return ArrayFromString<string>(listString, ',');
+        }
+
+        public static T[] ArrayFromString<T>(string listString, params char[] separator)
+        {
+            if (string.IsNullOrEmpty(listString)) return new T[] { };
 
             listString = listString.Trim();
 
-            IEnumerable<string> selection = listString.Split(',');
-            selection = selection.Select(s => s.Trim());
-            selection = selection.Where(s => s != string.Empty);
+            IEnumerable<string> selection = listString.Split(separator);
+            selection = selection.Select(s => s.Trim()).Where(s => s != string.Empty);
 
-            return selection.ToArray();
+            var result = new List<T>();
+
+            foreach(var s in selection)
+            {
+                s.CSMTryParse<T>(out T temp);
+                result.Add(temp);
+            }
+
+            return result.ToArray();
         }
 
         public static string FormatCommaSeparatedList(string input)

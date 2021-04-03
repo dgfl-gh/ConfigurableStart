@@ -15,9 +15,12 @@ namespace CustomScenarioManager
         public static StringBuilder startingScience = new StringBuilder("");
         public static StringBuilder startingRep = new StringBuilder("");
         public static StringBuilder kctLaunchpads = new StringBuilder("");
+        public static StringBuilder kctUpgrades = new StringBuilder("");
+        public static StringBuilder kctUnspentUpgrades = new StringBuilder("");
         public static StringBuilder tfStartingDU = new StringBuilder("");
         public static StringBuilder rfUnlockedConfigs = new StringBuilder("");
         public static StringBuilder completedContracts = new StringBuilder("");
+        public static StringBuilder acceptedContracts = new StringBuilder("");
 
         [KSPField(isPersistant = true)]
         public bool Initialized = false;
@@ -40,11 +43,17 @@ namespace CustomScenarioManager
         [KSPField(isPersistant = true)]
         public string KCTLaunchpads;
         [KSPField(isPersistant = true)]
+        public string KCTUpgrades;
+        [KSPField(isPersistant = true)]
+        public string KCTUnspentUpgrades;
+        [KSPField(isPersistant = true)]
         public string TFStartingDU;
         [KSPField(isPersistant = true)]
         public string RFUnlockedConfigs;
         [KSPField(isPersistant = true)]
         public string CompletedContracts;
+        [KSPField(isPersistant = true)]
+        public string AcceptedContracts;
 
         public override void OnAwake()
         {
@@ -68,6 +77,10 @@ namespace CustomScenarioManager
                 facilitiesUpgraded.ToString() : "null";
             Instance.KCTLaunchpads = !string.IsNullOrWhiteSpace(kctLaunchpads.ToString()) ?
                 kctLaunchpads.ToString() : "null";
+            Instance.KCTUpgrades = !string.IsNullOrWhiteSpace(kctUpgrades.ToString()) ?
+                kctUpgrades.ToString() : "null";
+            Instance.KCTUnspentUpgrades = !string.IsNullOrWhiteSpace(kctUnspentUpgrades.ToString()) ?
+                kctUnspentUpgrades.ToString() : "null";
             Instance.TFStartingDU = !string.IsNullOrWhiteSpace(tfStartingDU.ToString()) ?
                 tfStartingDU.ToString() : "null";
             Instance.RFUnlockedConfigs = !string.IsNullOrWhiteSpace(rfUnlockedConfigs.ToString()) ?
@@ -80,11 +93,12 @@ namespace CustomScenarioManager
                 startingRep.ToString() : "null";
             Instance.CompletedContracts = !string.IsNullOrWhiteSpace(completedContracts.ToString()) ?
                 completedContracts.ToString() : "null";
+            Instance.AcceptedContracts = !string.IsNullOrWhiteSpace(acceptedContracts.ToString()) ?
+                acceptedContracts.ToString() : "null";
 
             TrimEndingCommas();
 
             Instance.Initialized = true;
-            ResetAppliedScenarioFields();
 
             Utilities.Log("Updated persistent savegame info");
         }
@@ -95,24 +109,11 @@ namespace CustomScenarioManager
             //Instance.UnlockedParts = Instance.UnlockedParts.TrimEnd(',', ' ');
             Instance.FacilityUpgrades = Instance.FacilityUpgrades.TrimEnd(',', ' ');
             Instance.KCTLaunchpads = Instance.KCTLaunchpads.TrimEnd(',', ' ');
+            Instance.KCTUpgrades = Instance.KCTUpgrades.TrimEnd(',', ' ');
             Instance.TFStartingDU = Instance.TFStartingDU.TrimEnd(',', ' ');
             Instance.RFUnlockedConfigs = Instance.RFUnlockedConfigs.TrimEnd(',', ' ');
             Instance.CompletedContracts = Instance.CompletedContracts.TrimEnd(',', ' ');
-        }
-
-        private static void ResetAppliedScenarioFields()
-        {
-            startingDate.Clear();
-            unlockedTechs.Clear();
-            //unlockedParts.Clear();
-            facilitiesUpgraded.Clear();
-            kctLaunchpads.Clear();
-            tfStartingDU.Clear();
-            rfUnlockedConfigs.Clear();
-            startingFunds.Clear();
-            startingScience.Clear();
-            startingRep.Clear();
-            completedContracts.Clear();
+            Instance.AcceptedContracts = Instance.AcceptedContracts.TrimEnd(',', ' ');
         }
     }
 }

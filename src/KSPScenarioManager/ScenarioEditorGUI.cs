@@ -7,20 +7,23 @@ namespace CustomScenarioManager
     {
         public static ScenarioEditorGUI Instance = null;
 
-        public string activeScenario;
-        public string startingDate;
-        public string unlockedTechs;
+        public string activeScenario = "";
+        public string startingDate = "";
+        public string unlockedTechs = "";
         public bool unlockPartsInParentNodes;
-        public string partUnlockFilters;
-        public string facilityUpgrades;
-        public string startingFunds;
-        public string startingScience;
-        public string startingRep;
-        public string kctLaunchpads;
+        public string partUnlockFilters = "";
+        public string facilityUpgrades = "";
+        public string startingFunds = "";
+        public string startingScience = "";
+        public string startingRep = "";
+        public string kctLaunchpads = "";
+        public string kctUpgrades = "";
+        public string kctUnspentUpgrades = "";
         public bool kctRemoveDefaultPads;
-        public string tfStartingDU;
-        public string rfUnlockedConfigs;
-        public string completedContracts;
+        public string tfStartingDU = "";
+        public string rfUnlockedConfigs = "";
+        public string completedContracts = "";
+        public string acceptedContracts = "";
 
         public int labelWidth = (int)(200 * GameSettings.UI_SCALE);
         public int textAreaWidth = (int)(400 * GameSettings.UI_SCALE);
@@ -70,6 +73,11 @@ namespace CustomScenarioManager
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
+                GUILayout.Label("Accept contracts: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                acceptedContracts = GUILayout.TextArea(acceptedContracts, textAreaWidth, textFieldStyle);
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
                 GUILayout.Label("Starting Funds: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
                 startingFunds = GUILayout.TextArea(startingFunds, textAreaWidth, textFieldStyle);
                 GUILayout.EndHorizontal();
@@ -89,6 +97,16 @@ namespace CustomScenarioManager
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("KCT Launchpads: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
                     kctLaunchpads = GUILayout.TextArea(kctLaunchpads, textAreaWidth, textFieldStyle);
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("KCT Site upgrades: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                    kctUpgrades = GUILayout.TextArea(kctUpgrades, textAreaWidth, textFieldStyle);
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("KCT Unspent upgrades: ", HighLogic.Skin.label, GUILayout.Width(labelWidth));
+                    kctUnspentUpgrades = GUILayout.TextArea(kctUnspentUpgrades, textAreaWidth, textFieldStyle);
                     GUILayout.EndHorizontal();
                 }
 
@@ -141,17 +159,20 @@ namespace CustomScenarioManager
 
         public void UpdateFromScenario(Scenario scn)
         {
-            activeScenario = scn.ScenarioName;
-            startingDate = scn.StartingDate;
-            unlockedTechs = scn.UnlockedTechs;
+            activeScenario = scn.ScenarioName ?? "";
+            startingDate = scn.StartingDate ?? "";
+            unlockedTechs = scn.UnlockedTechs ?? "";
             unlockPartsInParentNodes = scn.UnlockPartsInParentNodes;
-            partUnlockFilters = scn.PartUnlockFilters;
-            kctLaunchpads = scn.KCTLaunchpads;
+            partUnlockFilters = scn.PartUnlockFilters ?? "";
+            kctLaunchpads = scn.KCTLaunchpads ?? "";
+            kctUpgrades = scn.KCTUpgrades ?? "";
+            kctUnspentUpgrades = scn.KCTUnspentUpgrades.ToString();
             kctRemoveDefaultPads = scn.KCTRemoveDefaltPads;
-            facilityUpgrades = scn.FacilityUpgrades;
-            rfUnlockedConfigs = scn.RFUnlockedConfigs;
-            tfStartingDU = scn.TFStartingDU;
-            completedContracts = scn.CompletedContracts;
+            facilityUpgrades = scn.FacilityUpgrades ?? "";
+            rfUnlockedConfigs = scn.RFUnlockedConfigs ?? "";
+            tfStartingDU = scn.TFStartingDU ?? "";
+            completedContracts = scn.CompletedContracts ?? "";
+            acceptedContracts = scn.AcceptedContracts ?? "";
             startingFunds = scn.StartingFunds.ToString();
             startingScience = scn.StartingScience.ToString();
             startingRep = scn.StartingRep.ToString();

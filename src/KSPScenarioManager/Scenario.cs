@@ -27,6 +27,7 @@ namespace CustomScenarioManager
         private string rfUnlockedConfigs = null;
         private string completedContracts = null;
         private string acceptedContracts = null;
+        private string completedExperiments = null;
         private float? startingFunds = null;
         private float? startingScience = null;
         private float? startingRep = null;
@@ -88,6 +89,7 @@ namespace CustomScenarioManager
             node.CSMTryGetValue("rfUnlockedConfigs", out x.rfUnlockedConfigs);
             node.CSMTryGetValue("completedContracts", out x.completedContracts);
             node.CSMTryGetValue("acceptedContracts", out x.acceptedContracts);
+            node.CSMTryGetValue("completedExperiments", out x.completedExperiments);
             node.CSMTryGetValue("startingRep", out x.startingRep);
             node.CSMTryGetValue("startingScience", out x.startingScience);
             node.CSMTryGetValue("startingFunds", out x.startingFunds);
@@ -140,11 +142,19 @@ namespace CustomScenarioManager
             // just to be even safer
             yield return new WaitForEndOfFrame();
 
+            // set date
+            if (!string.IsNullOrEmpty(startingDate))
+            {
+                startingDate = startingDate.Trim();
+                long UT = DateHandler.GetUTFromDate(startingDate);
+                SetDate(UT);
+            }
+
             // complete contracts
             if (!string.IsNullOrEmpty(completedContracts))
             {
                 string[] contractNames = Utilities.ArrayFromCommaSeparatedList(completedContracts);
-                HandleContracts(contractNames, complete:true);
+                HandleContracts(contractNames, complete: true);
             }
             // accept contracts
             if (!string.IsNullOrEmpty(acceptedContracts))
@@ -153,14 +163,6 @@ namespace CustomScenarioManager
                 HandleContracts(contractNames, complete: false);
             }
             contractsIterated = true;
-
-            // set date
-            if (!string.IsNullOrEmpty(startingDate))
-            {
-                startingDate = startingDate.Trim();
-                long UT = DateHandler.GetUTFromDate(startingDate);
-                SetDate(UT);
-            }
 
             // unlock technologies
             if (!string.IsNullOrEmpty(unlockedTechs))
@@ -508,9 +510,10 @@ namespace CustomScenarioManager
         }
 
         /// <summary>
-        /// Generates and completes an array of ContractConfigurator contracts
+        /// Generates and accepts/completes an array of ContractConfigurator contracts
         /// </summary>
         /// <param name="names"> Array of contract names that will be completed.</param>
+        /// <param name="complete"> Whether to complete or just accept the contracts.</param>
         public void HandleContracts(string[] names, bool complete)
         {
             List<ContractType> contractTypes = ContractType.AllValidContractTypes.ToList();
@@ -521,7 +524,7 @@ namespace CustomScenarioManager
                 {
                     if (contractName == subType.name)
                     {
-                        var contract = ForceGenerate(subType, 0, new System.Random().Next(), Contracts.Contract.State.Active);
+                        var contract = ForceGenerate(subType, 0, new System.Random().Next(), Contracts.Contract.State.Generated);
 
                         if (contract is null)
                         {
@@ -530,7 +533,7 @@ namespace CustomScenarioManager
                         }
 
                         StartCoroutine(HandleContractCoroutine(contract, complete));
-                        Utilities.Log($"Completed contract {contractName}");
+                        Utilities.Log($"{(complete ? "Completed" : "Accepted" )} contract {contractName}");
                     }
                 }
             }
@@ -582,6 +585,14 @@ namespace CustomScenarioManager
             if ((fi = t.GetField("notes", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
                 fi.SetValue(contract, contractType.notes);
 
+            // set expiry and deadline type to none
+            if ((fi = t.GetField("expiryType", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, Contracts.Contract.DeadlineType.Floating);
+            if ((fi = t.GetField("deadlineType", BindingFlags.NonPublic | BindingFlags.Instance)) is FieldInfo)
+                fi.SetValue(contract, Contracts.Contract.DeadlineType.Floating);
+
+            contract.TimeDeadline = contractType.deadline;
+
             return contract;
         }
 
@@ -628,23 +639,44 @@ namespace CustomScenarioManager
                 yield return new WaitForFixedUpdate();
 
             if (c.Accept())
+            {
                 yield return new WaitForFixedUpdate();
+            }
 
             if (complete)
             {
                 if (c.Complete())
                 {
                     CustomScenarioData.completedContracts.Append(c.subType + ",");
-                    yield return new WaitForFixedUpdate();
+                    //yield return new WaitForFixedUpdate();
                     Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
                 }
                 else
                     Utilities.LogWrn($"Couldn't complete contract {c.subType}");
             }
             else
+            {
                 CustomScenarioData.acceptedContracts.Append(c.subType + ",");
+                Contracts.ContractSystem.Instance.Contracts.Add(c);
+            }
 
             runningContractCoroutines--;
+        }
+
+        public void CompleteExperiments(Dictionary<string,int> completedSubjects)
+        {
+            List<ScienceSubject> subjects = ResearchAndDevelopment.GetSubjects();
+
+            foreach(var subject in subjects)
+            {
+                foreach(string pid in completedSubjects.Keys)
+                {
+                    if(subject.HasPartialIDstring(pid))
+                    {
+                        subject.science = subject.scienceCap * completedSubjects[pid];
+                    }
+                }
+            }
         }
     }
 }

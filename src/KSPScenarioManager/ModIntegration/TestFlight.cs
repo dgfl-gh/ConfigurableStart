@@ -7,7 +7,7 @@ namespace CustomScenarioManager
 {
     public static class TestFlight
     {
-        private static bool? _isInstalled = null;
+        private static bool? isInstalled = null;
         private static Type FlightManagerScenarioType = null;
         private static object instance = null;
 
@@ -15,7 +15,7 @@ namespace CustomScenarioManager
         {
             get
             {
-                if (!_isInstalled.HasValue)
+                if (!isInstalled.HasValue)
                 {
                     AssemblyLoader.loadedAssemblies.TypeOperation(t =>
                     {
@@ -26,10 +26,10 @@ namespace CustomScenarioManager
                         }
                     });
 
-                    _isInstalled = FlightManagerScenarioType != null;
+                    isInstalled = FlightManagerScenarioType != null;
                 }
 
-                return _isInstalled.Value;
+                return isInstalled.Value;
             }
         }
 

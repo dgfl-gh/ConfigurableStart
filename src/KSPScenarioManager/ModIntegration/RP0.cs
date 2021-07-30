@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Reflection;
+using Expansions.Missions.Editor;
+using UniLinq;
 using UnityEngine;
 
 namespace CustomScenarioManager
@@ -7,8 +9,10 @@ namespace CustomScenarioManager
     public static class RP0
     {
         private static bool? _isInstalled = null;
+        private static object _maintenanceHandler = null;
         private static Type MaintenanceHandlerType = null;
-        private static object instance = null;
+        private static Type CareerEventScopeType = null;
+        private static Type CareerEventTypeEnumType = null;
 
         public static bool Found
         {
@@ -16,48 +20,78 @@ namespace CustomScenarioManager
             {
                 if (!_isInstalled.HasValue)
                 {
-                    AssemblyLoader.loadedAssemblies.TypeOperation(t =>
-                    {
-                        if (t.FullName == "RP0.MaintenanceHandler")
-                        {
-                            MaintenanceHandlerType = t;
-                            Utilities.Log("RP0 detected");
-                        }
-                    });
+                    Assembly a = AssemblyLoader.loadedAssemblies.FirstOrDefault(la => string.Equals(la.dllName, "RP0", StringComparison.OrdinalIgnoreCase))?.assembly;
+                    Type t = a?.GetType("RP0.CareerEventScope");
 
-                    _isInstalled = MaintenanceHandlerType != null;
+                    _isInstalled = false;
+                    if (a == null)
+                        return _isInstalled.Value;
+                    
+                    _isInstalled = true;
+                    MaintenanceHandlerType = a.GetType("RP0.MaintenanceHandler");
+                    CareerEventScopeType = a.GetType("RP0.CareerEventScope");
+                    CareerEventTypeEnumType = a.GetType("RP0.CareerEventType");
                 }
 
                 return _isInstalled.Value;
             }
         }
 
-        public static object Instance
+        public static object MaintenanceHandler
         {
             get
             {
-                if (Found && instance == null)
+                if (Found && _maintenanceHandler == null)
                 {
-                    instance = MaintenanceHandlerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    _maintenanceHandler = MaintenanceHandlerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
                 }
-                return instance;
+                return _maintenanceHandler;
             }
-            set => instance = value;
         }
 
         public static void ResetLastMaintenanceUpdate(double newUT)
         {
-            if (Instance == null) return;
+            if (MaintenanceHandlerType == null) return;
 
             try
             {
-                MaintenanceHandlerType.GetField("lastUpdate").SetValue(instance, newUT);
+                MaintenanceHandlerType.GetField("lastUpdate").SetValue(_maintenanceHandler, newUT);
             }
             catch (Exception ex)
             {
+                Utilities.LogErr($"Couldn't update last RP0 maintenance");
                 Utilities.LogErr(ex);
-                Utilities.LogErr("Couldn't update last RP0 maintenance");
             }
+        }
+        
+        public static object InvokeCareerEventScope()
+        {
+            if (CareerEventScopeType == null || CareerEventTypeEnumType == null)
+            {
+                Utilities.LogWrn("Couldn't find career log hook. Have you updated RP0?");
+                return null;
+            }
+
+            try
+            {
+                var ignoreEventFieldInfo = CareerEventTypeEnumType.GetField("Ignore");
+                var ctor = CareerEventScopeType.GetConstructor(new Type[] {CareerEventTypeEnumType});
+
+                return ctor?.Invoke(new object[] {ignoreEventFieldInfo.GetValue(CareerEventTypeEnumType)});
+            }
+            catch (Exception ex)
+            {
+                Utilities.LogErr("Couldn't invoke RP0 CareerLog scope");
+                Utilities.LogErr(ex);
+
+                return null;
+            }
+        }
+        
+        public static void DisposeCareerEventScope(object scope)
+        {
+            // simultaneously get method and check if scope == null
+            scope?.GetType().GetMethod("Dispose", BindingFlags.Public | BindingFlags.Instance)?.Invoke(scope, null);
         }
     }
 }

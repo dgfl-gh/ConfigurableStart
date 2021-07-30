@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
+using UniLinq;
 
 namespace CustomScenarioManager
 {
@@ -28,12 +28,8 @@ namespace CustomScenarioManager
             try
             {
                 var converter = TypeDescriptor.GetConverter(typeof(T));
-                if (converter != null)
-                {
-                    value = (T)converter.ConvertFromString(input) ?? defaultValue;
-                    return true;
-                }
-                return false;
+                value = (T)converter.ConvertFromString(input) ?? defaultValue;
+                return true;
             }
             catch (NotSupportedException)
             {
@@ -80,17 +76,17 @@ namespace CustomScenarioManager
             separator ??= new char[] { '@' };
             var dict = new Dictionary<string, T>();
 
-            if (inputArray != null && inputArray.Length > 0)
+            if (inputArray == null || inputArray.Length <= 0)
+                return dict;
+            
+            foreach (string s in inputArray)
             {
-                foreach (string s in inputArray)
-                {
-                    string[] array = s.Split(separator, 2);
+                string[] array = s.Split(separator, 2);
 
-                    if (array.Length > 1 && array[1].CSMTryParse(out T value, defaultValue))
-                        dict[array[0]] = value;
-                    else
-                        dict[array[0]] = defaultValue;
-                }
+                if (array.Length > 1 && array[1].CSMTryParse(out T value, defaultValue))
+                    dict[array[0]] = value;
+                else
+                    dict[array[0]] = defaultValue;
             }
 
             return dict;
@@ -124,9 +120,8 @@ namespace CustomScenarioManager
         public static string FormatCommaSeparatedList(string input)
         {
             string[] array = ArrayFromCommaSeparatedList(input);
-            if (array.Length == 0) return "";
-
-            return string.Join(",", array);
+            
+            return array.Length == 0 ? "" : string.Join(",", array);
         }
     }
 }

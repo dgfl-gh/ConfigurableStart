@@ -136,7 +136,7 @@ namespace CustomScenarioManager
             yield return WaitForInitialization(() => Funding.Instance);
             yield return WaitForInitialization(() => PartLoader.Instance);
             yield return WaitForInitialization(() => Contracts.ContractSystem.Instance);
-            if (RP0.Found) yield return WaitForInitialization(() => RP0.Instance);
+            if (RP0.Found) yield return WaitForInitialization(() => RP0.MaintenanceHandler);
             if (TestFlight.Found) yield return WaitForInitialization(() => TestFlight.Instance);
 
             // just to be even safer
@@ -598,7 +598,11 @@ namespace CustomScenarioManager
 
         private IEnumerator HandleContractCoroutine(ConfiguredContract c, bool complete)
         {
+            // tell RP-1 career log to ignore us
+            object RP0scope =RP0.InvokeCareerEventScope();
+            
             runningContractCoroutines++;
+            
             // cache contract nodes
             if (contractNodes.Count == 0)
             {
@@ -607,7 +611,7 @@ namespace CustomScenarioManager
                 foreach (var node in cfgNodes)
                 {
                     if (node.GetValue("name") is string subT)
-                        contractNodes.Add(subT, node);
+                        contractNodes[subT] = node;
                 }
             }
 
@@ -661,6 +665,7 @@ namespace CustomScenarioManager
             }
 
             runningContractCoroutines--;
+            RP0.DisposeCareerEventScope(RP0scope);
         }
 
         public void CompleteExperiments(Dictionary<string,int> completedSubjects)

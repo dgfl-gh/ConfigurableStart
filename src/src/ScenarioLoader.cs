@@ -1,133 +1,115 @@
-﻿using ContractConfigurator;
-using System;
+﻿using System;
+using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+using System.Security.Cryptography;
 using UnityEngine;
+using UniLinq;
 using Upgradeables;
+using ContractConfigurator;
 
-namespace CustomScenarioManager
+namespace ConfigurableStart
 {
-    public class Scenario : MonoBehaviour
+    [KSPAddon(KSPAddon.Startup.MainMenu, false)]
+    public class ScenarioLoader : MonoBehaviour
     {
-        private string scenarioName = null;
-        private string description = null;
-        private string startingDate = null;
-        private string unlockedTechs = null;
-        private bool? unlockPartsInParentNodes = null;
-        private bool? unlockPartUpgrades = null;
-        private string partUnlockFilters = null;
-        private string facilityUpgrades = null;
-        private string kctLaunchpads = null;
-        private bool? kctRemoveDefaultPads = null;
-        private string kctUpgrades = null;
-        private int? kctUnspentUpgrades = null;
-        private string tfStartingDU = null;
-        private string rfUnlockedConfigs = null;
-        private string completedContracts = null;
-        private string acceptedContracts = null;
-        private string completedExperiments = null;
-        private float? startingFunds = null;
-        private float? startingScience = null;
-        private float? startingRep = null;
-
-        public string ScenarioName { get => scenarioName; set => scenarioName = value; }
-        public string Description { get => description; set => description = value; }
-        public string StartingDate { get => startingDate; set => startingDate = value; }
-        public string UnlockedTechs { get => unlockedTechs; set => unlockedTechs = value; }
-        public bool UnlockPartsInParentNodes
-        {
-            get => unlockPartsInParentNodes ?? true;
-            set => unlockPartsInParentNodes = value;
-        }
-        public string PartUnlockFilters { get => partUnlockFilters; set => partUnlockFilters = value; }
-        public string FacilityUpgrades { get => facilityUpgrades; set => facilityUpgrades = value; }
-        public string KCTLaunchpads { get => kctLaunchpads; set => kctLaunchpads = value; }
-        public bool KCTRemoveDefaltPads
-        {
-            get => kctRemoveDefaultPads ?? !string.IsNullOrEmpty(kctLaunchpads);
-            set => kctRemoveDefaultPads = value;
-        }
-        public string KCTUpgrades { get => kctUpgrades; set => kctUpgrades = value; }
-        public int? KCTUnspentUpgrades { get => kctUnspentUpgrades; set => kctUnspentUpgrades = value; }
-        public string TFStartingDU { get => tfStartingDU; set => tfStartingDU = value; }
-        public string RFUnlockedConfigs { get => rfUnlockedConfigs; set => rfUnlockedConfigs = value; }
-        public string CompletedContracts { get => completedContracts; set => completedContracts = value; }
-        public string AcceptedContracts { get => acceptedContracts; set => acceptedContracts = value; }
-        public float? StartingFunds { get => startingFunds; set => startingFunds = value; }
-        public float? StartingScience { get => startingScience; set => startingScience = value; }
-        public float? StartingRep { get => startingRep; set => startingRep = value; }
-
-        public long StartingUT => string.IsNullOrEmpty(startingDate) ? 0 : DateHandler.GetUTFromDate(startingDate);
-
-        // cache the contract nodes
+        public static Dictionary<string, Scenario> LoadedScenarios { get; } = new Dictionary<string, Scenario>();
+        private static bool mainMenuVisited;
+        private static string curScenarioName;
+        // to cache the contract nodes
         private static readonly Dictionary<string, ConfigNode> contractNodes = new Dictionary<string, ConfigNode>();
-        public static bool ContractsInitialized => runningContractCoroutines == 0 && contractsIterated;
         private static uint runningContractCoroutines = 0;
-        private static bool contractsIterated = false;
-
-        public static Scenario Create(ConfigNode node, GameObject gameObject = null)
+        private static bool contractsIterated         = false;
+        public static bool ContractsInitialized => runningContractCoroutines == 0 && contractsIterated;
+        public static Scenario CurrentScenario
         {
-            if (gameObject == null)
-                gameObject = new GameObject();
-
-            Scenario x = gameObject.AddComponent<Scenario>();
-
-            node.CSMTryGetValue("name", out x.scenarioName);
-            node.CSMTryGetValue("description", out x.description);
-            node.CSMTryGetValue("startingDate", out x.startingDate);
-            node.CSMTryGetValue("unlockedTechs", out x.unlockedTechs);
-            node.CSMTryGetValue("unlockPartsInParentNodes", out x.unlockPartsInParentNodes);
-            node.CSMTryGetValue("unlockPartUpgrades", out x.unlockPartUpgrades);
-            node.CSMTryGetValue("partUnlockFilters", out x.partUnlockFilters);
-            node.CSMTryGetValue("facilities", out x.facilityUpgrades);
-            node.CSMTryGetValue("kctLaunchpads", out x.kctLaunchpads);
-            node.CSMTryGetValue("kctUpgrades", out x.kctUpgrades);
-            node.CSMTryGetValue("kctUnspentUpgrades", out x.kctUnspentUpgrades);
-            node.CSMTryGetValue("tfStartingDU", out x.tfStartingDU);
-            node.CSMTryGetValue("rfUnlockedConfigs", out x.rfUnlockedConfigs);
-            node.CSMTryGetValue("completedContracts", out x.completedContracts);
-            node.CSMTryGetValue("acceptedContracts", out x.acceptedContracts);
-            node.CSMTryGetValue("completedExperiments", out x.completedExperiments);
-            node.CSMTryGetValue("startingRep", out x.startingRep);
-            node.CSMTryGetValue("startingScience", out x.startingScience);
-            node.CSMTryGetValue("startingFunds", out x.startingFunds);
-            if (!node.CSMTryGetValue("kctRemoveDefaultPads", out x.kctRemoveDefaultPads))
-                x.kctRemoveDefaultPads = !string.IsNullOrEmpty(x.kctLaunchpads);
-
-            return x;
+            get
+            {
+                if (LoadedScenarios != null && curScenarioName != null)
+                    return LoadedScenarios[curScenarioName];
+                
+                return null;
+            }
+            set
+            {
+                curScenarioName = value.ScenarioName;
+                EditorGUI.Instance.UpdateFromScenario(value);
+            }
         }
-
-        public bool IsValid()
+        public static void SetCurrentScenarioFromName(string name)
         {
-            return !string.IsNullOrEmpty(scenarioName);
+            if(!string.IsNullOrEmpty(name) && LoadedScenarios.ContainsKey(name))
+                curScenarioName = name;
+            EditorGUI.Instance.UpdateFromScenario(CurrentScenario);
         }
-
-        public void UpdateFromSettings()
+        
+        public void Start()
         {
-            startingDate = ScenarioEditorGUI.Instance.startingDate;
-            unlockedTechs = ScenarioEditorGUI.Instance.unlockedTechs;
-            unlockPartsInParentNodes = ScenarioEditorGUI.Instance.unlockPartsInParentNodes;
-            partUnlockFilters = ScenarioEditorGUI.Instance.partUnlockFilters;
-            facilityUpgrades = ScenarioEditorGUI.Instance.facilityUpgrades;
-            kctLaunchpads = ScenarioEditorGUI.Instance.kctLaunchpads;
-            kctRemoveDefaultPads = ScenarioEditorGUI.Instance.kctRemoveDefaultPads;
-            tfStartingDU = ScenarioEditorGUI.Instance.tfStartingDU;
-            rfUnlockedConfigs = ScenarioEditorGUI.Instance.rfUnlockedConfigs;
-            ScenarioEditorGUI.Instance.startingFunds.CSMTryParse(out startingFunds);
-            ScenarioEditorGUI.Instance.startingScience.CSMTryParse(out startingScience);
-            ScenarioEditorGUI.Instance.startingRep.CSMTryParse(out startingRep);
-        }
+            Utilities.Log("Start called");
 
-        public void SetParameters()
-        {
+            // don't destroy on scene switch
             DontDestroyOnLoad(this);
-            Utilities.Log($"Applying scenario {scenarioName}");
-            StartCoroutine(CheckKSPIntializationAndSetParameters());
+            
+            if (!mainMenuVisited)
+            {
+                GameEvents.onGameNewStart.Add(OnGameNewStart);
+                mainMenuVisited = true;
+            }
+
+            LoadPresetsFromConfig();
+            Utilities.Log("Start finished");
         }
 
-        public IEnumerator CheckKSPIntializationAndSetParameters()
+        public void LoadPresetsFromConfig()
+        {
+            Utilities.Log("Loading Scenarios");
+            LoadedScenarios.Clear();
+            LoadedScenarios["None"] = new Scenario("None");
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("CUSTOMSCENARIO");
+
+            foreach (var scenarioNode in nodes)
+            {
+                if (scenarioNode == null)
+                    return;
+                try
+                {
+                    var s = new Scenario(scenarioNode);
+                    LoadedScenarios[s.ScenarioName] = s;
+                }
+                catch (Exception ex)
+                {
+                    Utilities.Log($"{ex}");
+                }
+            }
+            
+            int actualCount = LoadedScenarios.Count - 1;
+            MainGUI.Instance?.Setup(LoadedScenarios.Keys.ToArray());
+            Utilities.Log($"Found {actualCount} scenario{(actualCount > 1 ? "s" : "")}");
+        }
+        
+        public void OnGameNewStart()
+        {
+            MainGUI.ShowSelectionWindow(false);
+            EditorGUI.ShowEditorWindow(false);
+
+            ApplyScenarioToGame(LoadedScenarios[curScenarioName]);
+        }
+
+        public void ApplyScenarioToGame(Scenario scn)
+        {
+            if (scn == null)
+            {
+                Utilities.LogWrn($"Selected Scenario doesn't exist, destroying");
+                Destroy(this);
+            }
+            else
+            {
+                Utilities.Log($"Applying scenario {scn.ScenarioName}");
+                StartCoroutine(CheckKSPIntializationAndSetParameters(scn));
+            }
+        }
+
+        private IEnumerator CheckKSPIntializationAndSetParameters(Scenario scn)
         {
             // make sure that everything has initialized properly first
             yield return WaitForInitialization(() => ScenarioUpgradeableFacilities.Instance);
@@ -137,108 +119,111 @@ namespace CustomScenarioManager
             yield return WaitForInitialization(() => PartLoader.Instance);
             yield return WaitForInitialization(() => Contracts.ContractSystem.Instance);
             if (RP0.Found) yield return WaitForInitialization(() => RP0.MaintenanceHandler);
-            if (TestFlight.Found) yield return WaitForInitialization(() => TestFlight.Instance);
+            if (TestFlight.Found) yield return WaitForInitialization(() => TestFlight.FlightManagerScenarioInstance);
 
             // just to be even safer
             yield return new WaitForEndOfFrame();
 
             // set date
-            if (!string.IsNullOrEmpty(startingDate))
+            if (scn.StartingUT != 0)
             {
-                startingDate = startingDate.Trim();
-                long UT = DateHandler.GetUTFromDate(startingDate);
-                SetDate(UT);
+                SetDate(scn.StartingUT);
             }
 
             // complete contracts
-            if (!string.IsNullOrEmpty(completedContracts))
+            if (!string.IsNullOrEmpty(scn.CompletedContracts))
             {
-                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(completedContracts);
+                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(scn.CompletedContracts);
                 HandleContracts(contractNames, complete: true);
             }
             // accept contracts
-            if (!string.IsNullOrEmpty(acceptedContracts))
+            if (!string.IsNullOrEmpty(scn.AcceptedContracts))
             {
-                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(acceptedContracts);
+                string[] contractNames = Utilities.ArrayFromCommaSeparatedList(scn.AcceptedContracts);
                 HandleContracts(contractNames, complete: false);
             }
             contractsIterated = true;
 
             // unlock technologies
-            if (!string.IsNullOrEmpty(unlockedTechs))
+            if (!string.IsNullOrEmpty(scn.UnlockedTechs))
             {
-                Dictionary<string, bool> techIDs = Utilities.DictionaryFromCommaSeparatedString(unlockedTechs, defaultValue: true);
+                Dictionary<string, bool> techIDs = Utilities.DictionaryFromCommaSeparatedString(scn.UnlockedTechs, defaultValue: true);
 
                 Dictionary<string, string> unlockFilters;
-                unlockFilters = string.IsNullOrEmpty(partUnlockFilters) ?
-                    null : Utilities.DictionaryFromCommaSeparatedString<string>(partUnlockFilters, defaultValue: null);
+                unlockFilters = string.IsNullOrEmpty(scn.PartUnlockFilters) ?
+                    null : Utilities.DictionaryFromCommaSeparatedString<string>(scn.PartUnlockFilters, defaultValue: null);
 
-                UnlockTechnologies(techIDs, unlockFilters, unlockPartUpgrades);
+                UnlockTechnologies(techIDs, unlockFilters, scn.UnlockPartUpgrades, scn.UnlockPartsInParentNodes);
             }
 
             // set facility levels
-            if (!string.IsNullOrEmpty(facilityUpgrades))
+            if (!string.IsNullOrEmpty(scn.FacilityUpgrades))
             {
-                Dictionary<string, int> facilities = Utilities.DictionaryFromCommaSeparatedString<int>(facilityUpgrades);
+                Dictionary<string, int> facilities = Utilities.DictionaryFromCommaSeparatedString<int>(scn.FacilityUpgrades);
                 SetFacilityLevels(facilities);
             }
 
             // set KCT launchpads
-            if (KCT.Found && !string.IsNullOrEmpty(kctLaunchpads))
+            if (KCT.Found && !string.IsNullOrEmpty(scn.KCTLaunchpads))
             {
-                Dictionary<string, int> pads = Utilities.DictionaryFromCommaSeparatedString<int>(kctLaunchpads);
-                KCT.CreatePads(pads, kctRemoveDefaultPads.GetValueOrDefault(true));
+                Dictionary<string, int> pads = Utilities.DictionaryFromCommaSeparatedString<int>(scn.KCTLaunchpads);
+                KCT.CreatePads(pads, scn.KCTRemoveDefaultPads);
             }
 
             //set KCT upgrade points
-            if (KCT.Found && kctUnspentUpgrades != null)
+            if (KCT.Found && scn.KCTUnspentUpgrades != null)
             {
-                KCT.SetUnspentPoints(kctUnspentUpgrades.GetValueOrDefault(-1));
-                Utilities.Log($"Added {kctUnspentUpgrades} KCT upgrade points");
+                KCT.SetUnspentPoints(scn.KCTUnspentUpgrades.GetValueOrDefault(-1));
             }
-            if(KCT.Found && !string.IsNullOrEmpty(kctUpgrades))
+            if(KCT.Found && !string.IsNullOrEmpty(scn.KCTUpgrades))
             {
-                KCT.SetUpgradePoints(kctUpgrades);
-                Utilities.Log("Upgraded KCT sites");
+                KCT.SetUpgradePoints(scn.KCTUpgrades);
             }
 
             // unlock RF engine configs
-            if (RealFuels.Found && !string.IsNullOrEmpty(rfUnlockedConfigs))
+            if (RealFuels.Found && !string.IsNullOrEmpty(scn.RFUnlockedConfigs))
             {
-                string[] configs = Utilities.ArrayFromCommaSeparatedList(rfUnlockedConfigs);
+                string[] configs = Utilities.ArrayFromCommaSeparatedList(scn.RFUnlockedConfigs);
                 RealFuels.UnlockEngineConfigs(configs);
             }
 
             // set starting DU for TF
-            if (TestFlight.Found && !string.IsNullOrEmpty(tfStartingDU))
+            if (TestFlight.Found && !string.IsNullOrEmpty(scn.TFStartingDU))
             {
-                Dictionary<string, float> engines = Utilities.DictionaryFromCommaSeparatedString<float>(tfStartingDU);
+                Dictionary<string, float> engines = Utilities.DictionaryFromCommaSeparatedString<float>(scn.TFStartingDU);
                 TestFlight.SetFlightDataForParts(engines);
             }
 
             // set reputation
-            if (startingRep != null)
-                SetReputation(startingRep.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingReputation));
+            if (scn.StartingRep != null)
+            {
+                SetReputation(scn.StartingRep.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingReputation));
+            }
 
             // set science points
-            if (startingScience != null)
-                SetScience(startingScience.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingScience));
+            if (scn.StartingScience != null)
+            {
+                SetScience(scn.StartingScience.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingScience));
+            }
 
             // set funds
-            if (startingFunds != null)
-                SetFunds(startingFunds.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingFunds));
+            if (scn.StartingFunds != null)
+            {
+                SetFunds(scn.StartingFunds.GetValueOrDefault(HighLogic.CurrentGame.Parameters.Career.StartingFunds));
+            }
 
-            StartCoroutine(UpdateScenarioFields());
+            StartCoroutine(CompleteScenarioInitialization());
             yield break;
         }
 
-        private IEnumerator UpdateScenarioFields()
+        private IEnumerator CompleteScenarioInitialization()
         {
             while (!ContractsInitialized)
                 yield return new WaitForFixedUpdate();
-
-            CustomScenarioData.UpdateAppliedScenarioFields();
+            
             Utilities.Log("Scenario applied");
+            Utilities.Log("Destroying ScenarioLoader...");
+            Destroy(this);
         }
 
         /// <summary>
@@ -246,7 +231,7 @@ namespace CustomScenarioManager
         /// </summary>
         /// <param name="obj">The object to check</param>
         /// <returns></returns>
-        public IEnumerator WaitForInitialization(Func<object> obj)
+        private static IEnumerator WaitForInitialization(Func<object> obj)
         {
             while (obj() == null)
             {
@@ -262,7 +247,6 @@ namespace CustomScenarioManager
         public void SetDate(long newUT)
         {
             Planetarium.SetUniversalTime(newUT);
-            CustomScenarioData.startingDate.Append(DateHandler.GetFormattedDateString(newUT));
             Utilities.Log($"Set UT: {newUT}");
 
             if (RP0.Found)
@@ -277,7 +261,6 @@ namespace CustomScenarioManager
         {
             Funding.Instance.SetFunds(funds, TransactionReasons.Progression);
             Utilities.Log($"Set funds: {funds}");
-            CustomScenarioData.startingFunds.Append(funds);
         }
 
         /// <summary>
@@ -288,18 +271,17 @@ namespace CustomScenarioManager
         {
             ResearchAndDevelopment.Instance.SetScience(science, TransactionReasons.Progression);
             Utilities.Log($"Set science: {science}");
-            CustomScenarioData.startingScience.Append(science);
         }
 
         /// <summary>
         /// Set the amount of Reputation the player has
+        /// TODO: investigate if it works as intended
         /// </summary>
         /// <param name="rep">How much reputation the player should have</param>
         public void SetReputation(float rep)
         {
             Reputation.Instance.SetReputation(rep, TransactionReasons.Progression);
             Utilities.Log($"Set reputation: {rep}");
-            CustomScenarioData.startingRep.Append(rep);
         }
 
         /// <summary>
@@ -348,7 +330,6 @@ namespace CustomScenarioManager
                     level = Mathf.Clamp(level, 0, facility.MaxLevel);
                     facility.SetLevel(level);
                     Utilities.Log($"Upgraded {facility.name} to level {++level}");
-                    CustomScenarioData.facilitiesUpgraded.Append($"{facility.name}@{level},");
                     break;
                 }
             }
@@ -358,14 +339,14 @@ namespace CustomScenarioManager
         /// Iterates through each tech that is defined in the Config and calls UnlockTech()
         /// </summary>
         /// <param name="techIDs"></param>
-        public void UnlockTechnologies(Dictionary<string, bool> techIDs, Dictionary<string, string> unlockFilters, bool? unlockPartUpgrades)
+        public void UnlockTechnologies(Dictionary<string, bool> techIDs, Dictionary<string, string> unlockFilters, bool? unlockPartUpgrades, bool unlockPartsInParents)
         {
             var researchedNodes = new List<ProtoRDNode>();
 
             AssetBase.RnDTechTree.ReLoad();
             foreach (string tech in techIDs.Keys)
             {
-                UnlockTechFromTechID(tech, researchedNodes, techIDs[tech], unlockPartUpgrades, false, unlockFilters);
+                UnlockTechFromTechID(tech, researchedNodes, techIDs[tech], unlockPartsInParents, unlockPartUpgrades, false, unlockFilters);
             }
         }
 
@@ -373,7 +354,7 @@ namespace CustomScenarioManager
         /// Find a ProtoRDNode from its techID and unlocks it, along with all its parents.
         /// </summary>
         /// <param name="techID"></param>
-        public void UnlockTechFromTechID(string techID, List<ProtoRDNode> researchedNodes, bool unlockParts, bool? unlockPartUpgrades, bool isRecursive, Dictionary<string, string> unlockFilters)
+        public void UnlockTechFromTechID(string techID, List<ProtoRDNode> researchedNodes, bool unlockParts, bool unlockPartsInParents, bool? unlockPartUpgrades, bool isRecursive, Dictionary<string, string> unlockFilters)
         {
             if (string.IsNullOrEmpty(techID)) return;
 
@@ -381,7 +362,7 @@ namespace CustomScenarioManager
             List<ProtoRDNode> rdNodes = AssetBase.RnDTechTree.GetTreeNodes().ToList();
             if (rdNodes[0].FindNodeByID(techID, rdNodes) is ProtoRDNode rdNode)
             {
-                UnlockTechWithParents(rdNode, researchedNodes, unlockParts, unlockPartUpgrades, isRecursive, unlockFilters);
+                UnlockTechWithParents(rdNode, researchedNodes, unlockParts, unlockPartsInParents, unlockPartUpgrades, isRecursive, unlockFilters);
             }
             else
                 Utilities.LogWrn($"{techID} node not found");
@@ -391,15 +372,15 @@ namespace CustomScenarioManager
         /// Unlock a technology and all of its parents.
         /// </summary>
         /// <param name="protoRDNode"></param>
-        public void UnlockTechWithParents(ProtoRDNode protoRDNode, List<ProtoRDNode> researchedNodes, bool unlockParts, bool? unlockPartUpgrades, bool isRecursive, Dictionary<string, string> partUnlockFilters)
+        public void UnlockTechWithParents(ProtoRDNode protoRDNode, List<ProtoRDNode> researchedNodes, bool unlockParts, bool unlockPartsInParents, bool? unlockPartUpgrades, bool isRecursive, Dictionary<string, string> partUnlockFilters)
         {
             foreach (var parentNode in protoRDNode.parents ?? Enumerable.Empty<ProtoRDNode>())
             {
                 if (!researchedNodes.Contains(parentNode))
-                    UnlockTechWithParents(parentNode, researchedNodes, unlockParts, unlockPartUpgrades, true, partUnlockFilters);
+                    UnlockTechWithParents(parentNode, researchedNodes, unlockParts, unlockPartsInParents, unlockPartUpgrades, true, partUnlockFilters);
             }
 
-            bool b = unlockParts && (!isRecursive || (isRecursive && UnlockPartsInParentNodes));
+            bool b = unlockParts && (!isRecursive || (isRecursive && unlockPartsInParents));
             UnlockTech(protoRDNode.tech, b, unlockPartUpgrades, partUnlockFilters);
             researchedNodes.Add(protoRDNode);
         }
@@ -428,11 +409,8 @@ namespace CustomScenarioManager
             }
 
             ResearchAndDevelopment.Instance.SetTechState(techID, ptn);
-            CustomScenarioData.unlockedTechs.Append(techID + ",");
             Utilities.Log($"Unlocked tech: {techID}");
-
-            //ptn.partsPurchased.ForEach(p => CustomScenarioData.unlockedParts.Append(p.title + ","));
-
+            
             if (unlockPartUpgrades ?? unlockParts)
             {
                 var upgrades = PartUpgradeManager.Handler.GetUpgradesForTech(techID);
@@ -651,7 +629,6 @@ namespace CustomScenarioManager
             {
                 if (c.Complete())
                 {
-                    CustomScenarioData.completedContracts.Append(c.subType + ",");
                     //yield return new WaitForFixedUpdate();
                     Contracts.ContractSystem.Instance.ContractsFinished.Add(c);
                 }
@@ -660,7 +637,6 @@ namespace CustomScenarioManager
             }
             else
             {
-                CustomScenarioData.acceptedContracts.Append(c.subType + ",");
                 Contracts.ContractSystem.Instance.Contracts.Add(c);
             }
 

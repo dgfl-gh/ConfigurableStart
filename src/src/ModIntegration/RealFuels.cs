@@ -1,32 +1,32 @@
 ﻿using System;
 using System.Reflection;
 
-namespace CustomScenarioManager
+namespace ConfigurableStart
 {
     public static class RealFuels
     {
-        private static bool? _isInstalled = null;
-        private static Type EntryCostDatabaseType = null;
+        private static bool? isInstalled = null;
+        private static Type entryCostDatabaseType = null;
 
         public static bool Found
         {
             get
             {
-                if (!_isInstalled.HasValue)
+                if (!isInstalled.HasValue)
                 {
                     AssemblyLoader.loadedAssemblies.TypeOperation(t =>
                     {
                         if (t.FullName == "RealFuels.EntryCostDatabase")
                         {
-                            EntryCostDatabaseType = t;
+                            entryCostDatabaseType = t;
                             Utilities.Log("RealFuels detected");
                         }
                     });
 
-                    _isInstalled = EntryCostDatabaseType != null;
+                    isInstalled = entryCostDatabaseType != null;
                 }
 
-                return _isInstalled.Value;
+                return isInstalled.Value;
             }
         }
 
@@ -34,13 +34,12 @@ namespace CustomScenarioManager
         {
             if (!Found) return;
 
-            if (EntryCostDatabaseType.GetMethod("SetUnlocked", new Type[] { typeof(string) }) is MethodInfo SetUnlocked)
+            if (entryCostDatabaseType.GetMethod("SetUnlocked", new Type[] { typeof(string) }) is MethodInfo SetUnlocked)
             {
                 foreach (string config in configNames)
                 {
                     SetUnlocked.Invoke(null, new object[] { config });
                     Utilities.Log($"Unlocked {config} engine config");
-                    CustomScenarioData.rfUnlockedConfigs.Append(config + ",");
                 }
             }
             else

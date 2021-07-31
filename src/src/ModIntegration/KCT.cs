@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UniLinq;
 using System.Reflection;
 
-namespace CustomScenarioManager
+namespace ConfigurableStart
 {
     public static class KCT
     {
@@ -55,7 +55,6 @@ namespace CustomScenarioManager
 
                     CreatePad.Invoke(null, new object[] { padName, level });
                     Utilities.Log($"Created new KCT pad: {padName}, level {level}");
-                    CustomScenarioData.kctLaunchpads.Append($"{padName}@{level},");
                 }
             }
             else
@@ -99,6 +98,8 @@ namespace CustomScenarioManager
                         Utilities.Log("Set upgrades for default KSC");
                 }
             }
+            
+            Utilities.Log("Upgraded KCT sites");
         }
 
         public static bool SetUpgradePointsForKSC(string KSC, int buildPnts, int devPnts, int researchPnts = 0)
@@ -159,7 +160,6 @@ namespace CustomScenarioManager
             if (b)
             {
                 SetUnspentPoints(buildPnts + researchPnts + devPnts, add: true);
-                CustomScenarioData.kctUpgrades.Append($"{(string)kscItemType.GetField("KSCName").GetValue(kscItem)}@{buildPnts}-{devPnts}-{researchPnts},");
             }
 
             return b;
@@ -178,6 +178,8 @@ namespace CustomScenarioManager
                 upgrades[1] = points;
 
             fi.SetValue(null, upgrades);
+            
+            Utilities.Log($"Added {points} KCT upgrade points");
         }
     }
 }

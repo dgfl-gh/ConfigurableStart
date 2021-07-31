@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace CustomScenarioManager
+namespace ConfigurableStart
 {
     public class DateHandler
     {
@@ -10,10 +9,7 @@ namespace CustomScenarioManager
 
         private static readonly IDateTimeFormatter timeFormatter = KSPUtil.dateTimeFormatter;
 
-        public static string GetFormattedDateString(long UT)
-        {
-            return timeFormatter.PrintDateCompact(UT, true);
-        }
+        public static string GetFormattedDateString(long UT) => timeFormatter.PrintDateCompact(UT, true);
 
         public static string GetDatePreview(string dateString)
         {
@@ -32,8 +28,8 @@ namespace CustomScenarioManager
 
             if (newUT != 0)
                 return GetFormattedDateString(newUT);
-            else
-                return "Invalid date";
+            
+            return "Invalid date";
         }
 
         public static long GetUTFromDate(string dateString)
@@ -67,7 +63,7 @@ namespace CustomScenarioManager
             return newUT;
         }
 
-        public static long TimeSpanToSeconds(TimeSpan span)
+        private static long TimeSpanToSeconds(TimeSpan span)
         {
             long years = span.Days / 365;
             long days = span.Days - years * 365;
@@ -80,7 +76,7 @@ namespace CustomScenarioManager
             return totalSeconds;
         }
 
-        public static bool TryParseDate(string dateString, out DateTime dateTime)
+        private static bool TryParseDate(string dateString, out DateTime dateTime)
         {
             try
             {
@@ -94,7 +90,7 @@ namespace CustomScenarioManager
             }
         }
 
-        public static bool TryParseStockDate(string dateString, out long newUT)
+        private static bool TryParseStockDate(string dateString, out long newUT)
         {
             newUT = Epoch;
             var pattern = new Regex(@"^[Y]?\d{4}\-[dD]?\d+$");

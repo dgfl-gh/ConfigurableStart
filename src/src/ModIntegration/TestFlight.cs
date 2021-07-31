@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using UnityEngine;
 
-namespace CustomScenarioManager
+namespace ConfigurableStart
 {
     public static class TestFlight
     {
         private static bool? isInstalled = null;
-        private static Type FlightManagerScenarioType = null;
+        private static Type flightManagerScenarioType = null;
         private static object instance = null;
 
         public static bool Found
@@ -21,36 +20,37 @@ namespace CustomScenarioManager
                     {
                         if (t.FullName == "TestFlightCore.TestFlightManagerScenario")
                         {
-                            FlightManagerScenarioType = t;
+                            flightManagerScenarioType = t;
                             Utilities.Log("TestFlight detected");
                         }
                     });
 
-                    isInstalled = FlightManagerScenarioType != null;
+                    isInstalled = flightManagerScenarioType != null;
                 }
 
                 return isInstalled.Value;
             }
         }
 
-        public static object Instance
+        public static object FlightManagerScenarioInstance
         {
             get
             {
                 if (Found && instance == null)
                 {
-                    instance = FlightManagerScenarioType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+                    instance = flightManagerScenarioType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+                    if (instance == null)
+                        Utilities.LogWrn("Couldn't hook into TF flight data manager instance");
                 }
                 return instance;
             }
-            set => instance = value;
         }
 
         public static void SetFlightDataForParts(Dictionary<string, float> data)
         {
-            if (Instance == null) return;
+            if (FlightManagerScenarioInstance == null) return;
 
-            if (FlightManagerScenarioType.GetMethod("SetFlightDataForPartName") is MethodInfo SetFlightDataForPartName)
+            if (flightManagerScenarioType.GetMethod("SetFlightDataForPartName") is MethodInfo SetFlightDataForPartName)
             {
                 foreach (KeyValuePair<string, float> kvp in data)
                 {
@@ -58,9 +58,8 @@ namespace CustomScenarioManager
                     {
                         //kvp.Key = part name
                         //kvp.Value = flight data
-                        SetFlightDataForPartName.Invoke(Instance, new object[] { kvp.Key, kvp.Value });
+                        SetFlightDataForPartName.Invoke(FlightManagerScenarioInstance, new object[] { kvp.Key, kvp.Value });
                         Utilities.Log($"Flight Data for part {kvp.Key} set to {kvp.Value}");
-                        CustomScenarioData.tfStartingDU.Append($"{kvp.Key}@{kvp.Value},");
                     }
                     catch (Exception ex)
                     {

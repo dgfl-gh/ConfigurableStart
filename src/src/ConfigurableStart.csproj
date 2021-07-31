@@ -7,8 +7,8 @@
     <ProjectGuid>{21D4E06D-C478-48DB-B06F-D14891568F31}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CustomScenarioManager</RootNamespace>
-    <AssemblyName>CustomScenarioManager</AssemblyName>
+    <RootNamespace>ConfigurableStart</RootNamespace>
+    <AssemblyName>ConfigurableStart</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -17,16 +17,16 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\GameData\CustomScenarioManager\Plugin\</OutputPath>
+    <OutputPath>..\..\GameData\ConfigurableStart\Plugin\</OutputPath>
     <DefineConstants>TRACE;DEBUG;ENABLE_PROFILER</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>8.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>portable</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\GameData\ConfigurableStart\Plugin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -34,32 +34,27 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\KSP\RO DEV\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="ContractConfigurator, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\KSPDLL\1_11_1\ContractConfigurator.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\PersistentThrust\src\Unity\8.1\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\..\KSP\RO DEV\KSP_x64_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\..\..\PersistentThrust\src\Unity\8.1\UnityEngine.IMGUIModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CustomScenarioData.cs" />
     <Compile Include="DateHandler.cs" />
+    <Compile Include="MainGUI.cs" />
     <Compile Include="ModIntegration\KCT.cs" />
     <Compile Include="ModIntegration\RealFuels.cs" />
     <Compile Include="ModIntegration\RP0.cs" />
@@ -67,7 +62,7 @@
     <Compile Include="Scenario.cs" />
     <Compile Include="ScenarioLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ScenarioEditorGUI.cs" />
+    <Compile Include="EditorGUI.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

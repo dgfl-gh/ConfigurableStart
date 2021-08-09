@@ -98,6 +98,7 @@ namespace ConfigurableStart
             GUILayout.Space(7);
 
             GUILayout.BeginVertical();
+            //TODO
             //if (ScenarioLoader.CurrentScenario != null)
             {
                 GUILayout.BeginHorizontal();

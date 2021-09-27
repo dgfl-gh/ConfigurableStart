@@ -92,10 +92,52 @@ namespace ConfigurableStart
             MainGUI.ShowSelectionWindow(false);
             EditorGUI.ShowEditorWindow(false);
 
-            ApplyScenarioToGame(LoadedScenarios[curScenarioName]);
+            switch (HighLogic.CurrentGame.Mode)
+            {
+                case Game.Modes.CAREER:
+                    Utilities.Log("Career Detected");
+                    ApplyScenarioToCareer(LoadedScenarios[curScenarioName]);
+                    break;
+                case Game.Modes.SANDBOX:
+                    Utilities.Log("Sandbox Detected");
+                    ApplyScenarioToSandbox(LoadedScenarios[curScenarioName]);
+                    break;
+                case Game.Modes.SCIENCE_SANDBOX:
+                    Utilities.Log("Science Mode Detected");
+                    ApplyScenarioToSandbox(LoadedScenarios[curScenarioName]);
+                    break;
+                default:
+                    break;
+            }
         }
 
-        public void ApplyScenarioToGame(Scenario scn)
+        /// <summary>
+        /// Validates the scenario and applies the date, if defined
+        /// </summary>
+        /// <param name="scn"></param>
+        public void ApplyScenarioToSandbox(Scenario scn)
+        {
+            if (scn == null)
+            {
+                Utilities.LogWrn($"Selected Scenario doesn't exist, destroying");
+                Destroy(this);
+            }
+            else
+            {
+                Utilities.Log($"Applying date from scenario {scn.ScenarioName}");
+                
+                if (scn.StartingUT != 0)
+                {
+                    SetDate(scn.StartingUT);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates the scenario and applies every defined field
+        /// </summary>
+        /// <param name="scn"></param>
+        public void ApplyScenarioToCareer(Scenario scn)
         {
             if (scn == null)
             {

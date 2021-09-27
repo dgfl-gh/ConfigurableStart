@@ -31,6 +31,4 @@ the starting date, technology level, starting facilities and initial funding amo
 - RP-1
 - Kopernicus/custom planet packs
 - Principia (should be fine, not tested yet)
-
-### Planned support (open to suggestions):
 - automatic contract completion through Contract configurator
